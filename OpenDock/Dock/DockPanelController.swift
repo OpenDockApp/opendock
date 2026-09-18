@@ -20,6 +20,17 @@ final class DockPanelController {
         }
     }
 
+    /// Visible gap in points between the bar and the bottom of the screen.
+    var bottomGap: Double = UserDefaults.standard.object(forKey: Keys.bottomGap) as? Double ?? DockPanelController.defaultBottomGap {
+        didSet {
+            UserDefaults.standard.set(bottomGap, forKey: Keys.bottomGap)
+            applyFrame(animated: false)
+        }
+    }
+
+    static let defaultBottomGap: Double = 4
+    static let bottomGapRange: ClosedRange<Double> = 0...40
+
     /// Whether the dock is currently slid in (only meaningful when auto-hide is on).
     private(set) var isRevealed = true
 
@@ -34,6 +45,7 @@ final class DockPanelController {
 
     private enum Keys {
         static let autoHide = "dock.autoHide"
+        static let bottomGap = "dock.bottomGap"
     }
 
     private enum Timing {
@@ -42,8 +54,6 @@ final class DockPanelController {
         static let revealGrace: Duration = .milliseconds(1200)
     }
 
-    /// Distance from the screen bottom the resting dock floats at.
-    private let bottomInset: CGFloat = 4
     /// How close to the bottom edge the pointer must be to reveal the dock.
     private let revealZone: CGFloat = 2
 
@@ -213,7 +223,7 @@ final class DockPanelController {
         let size = currentSize
         return CGRect(
             x: screen.frame.midX - size.width / 2,
-            y: screen.frame.minY + bottomInset,
+            y: screen.frame.minY + CGFloat(bottomGap) - DockView.shadowMargin,
             width: size.width,
             height: size.height
         )

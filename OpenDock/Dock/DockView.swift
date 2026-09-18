@@ -4,6 +4,10 @@ import OpenDockKit
 
 /// The glass bar. Lays out widget tiles in a single row on the size grid.
 struct DockView: View {
+    /// Transparent room around the bar so the panel shadow is not clipped.
+    /// The controller offsets the panel by this amount so it does not add to the gap.
+    static let shadowMargin: CGFloat = 12
+
     let controller: DockPanelController
 
     private var layout: DockLayoutStore { controller.layout }
@@ -21,7 +25,7 @@ struct DockView: View {
         }
         .padding(theme.padding)
         .glassEffect(.regular, in: shape)
-        .padding(12) // room for the panel shadow
+        .padding(Self.shadowMargin)
         .environment(\.dockTheme, theme)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
             controller.contentSizeChanged(size)

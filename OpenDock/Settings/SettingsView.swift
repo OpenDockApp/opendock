@@ -77,6 +77,16 @@ private struct GeneralSettingsView: View {
         @Bindable var controller = controller
         Form {
             Toggle("Automatically hide and show the dock", isOn: $controller.autoHide)
+            LabeledContent("Distance from bottom") {
+                HStack {
+                    Slider(value: $controller.bottomGap, in: DockPanelController.bottomGapRange, step: 1)
+                        .frame(width: 180)
+                    Text("\(Int(controller.bottomGap)) pt")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, alignment: .trailing)
+                }
+            }
         }
         .formStyle(.grouped)
     }
