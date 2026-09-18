@@ -8,19 +8,22 @@ public struct HostServices {
     public var storage: WidgetStorage
     public var meetings: MeetingService
     public var battery: BatteryService
+    public var weather: WeatherService
 
     public init(
         openURL: @escaping (URL) -> Void,
         openApplication: @escaping (URL) -> Void,
         storage: WidgetStorage,
         meetings: MeetingService = .shared,
-        battery: BatteryService = .shared
+        battery: BatteryService = .shared,
+        weather: WeatherService = .init()
     ) {
         self.openURL = openURL
         self.openApplication = openApplication
         self.storage = storage
         self.meetings = meetings
         self.battery = battery
+        self.weather = weather
     }
 
     /// Default implementation backed by NSWorkspace and UserDefaults.
