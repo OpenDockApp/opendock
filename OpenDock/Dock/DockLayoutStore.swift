@@ -3,14 +3,20 @@ import Observation
 import OpenDockKit
 
 /// The ordered list of widgets in the dock, persisted as JSON in Application Support.
+///
+/// Edit mode works on a draft: `beginEditing` snapshots the layout, changes are held in
+/// memory, `commitEditing` saves them and `cancelEditing` restores the snapshot.
 @Observable
 final class DockLayoutStore {
     private(set) var items: [DockItem] = []
-    var isEditing = false {
+    private(set) var isEditing = false {
         didSet {
             if isEditing != oldValue { onEditingChanged?(isEditing) }
         }
     }
+
+    /// Layout before edit mode started, used by Cancel.
+    @ObservationIgnored private var snapshot: [DockItem]?
 
     /// Lets the panel controller react to edit mode without observation plumbing.
     @ObservationIgnored var onEditingChanged: ((Bool) -> Void)?
@@ -22,10 +28,48 @@ final class DockLayoutStore {
         load()
     }
 
+    // MARK: Edit mode
+
+    func beginEditing() {
+        guard !isEditing else { return }
+        snapshot = items
+        isEditing = true
+    }
+
+    func commitEditing() {
+        guard isEditing else { return }
+        snapshot = nil
+        isEditing = false
+        save()
+    }
+
+    func cancelEditing() {
+        guard isEditing else { return }
+        if let snapshot { items = snapshot }
+        snapshot = nil
+        isEditing = false
+    }
+
     // MARK: Mutations
 
     func add(_ descriptor: WidgetDescriptor, size: WidgetSize? = nil) {
-        items.append(DockItem(widgetID: descriptor.id, size: size ?? descriptor.defaultSize))
+        insert(descriptor, before: nil, size: size)
+    }
+
+    /// Inserts a new widget before `targetID`, or at the end when `targetID` is nil.
+    func insert(_ descriptor: WidgetDescriptor, before targetID: UUID?, size: WidgetSize? = nil) {
+        let item = DockItem(widgetID: descriptor.id, size: size ?? descriptor.defaultSize)
+        if let targetID, let index = items.firstIndex(where: { $0.id == targetID }) {
+            items.insert(item, at: index)
+        } else {
+            items.append(item)
+        }
+        save()
+    }
+
+    func moveToEnd(_ id: UUID) {
+        guard let from = items.firstIndex(where: { $0.id == id }) else { return }
+        items.append(items.remove(at: from))
         save()
     }
 
@@ -81,7 +125,9 @@ final class DockLayoutStore {
         items = decoded
     }
 
+    /// Writes to disk, except while editing: the draft is saved on commit.
     private func save() {
+        guard !isEditing else { return }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(items) else { return }

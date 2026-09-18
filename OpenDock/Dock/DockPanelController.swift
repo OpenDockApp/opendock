@@ -42,6 +42,8 @@ final class DockPanelController {
     private var mouseMonitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
     private var tracker: HoverTracker?
+    /// The app that was frontmost when editing began, so keyboard focus can go back to it.
+    private var appBeforeEditing: NSRunningApplication?
 
     private enum Keys {
         static let autoHide = "dock.autoHide"
@@ -195,7 +197,19 @@ final class DockPanelController {
     private func observeEditing() {
         layout.onEditingChanged = { [weak self] editing in
             guard let self else { return }
-            editing ? self.reveal() : self.scheduleHide(after: Timing.hideDelay)
+            if editing {
+                self.reveal()
+                // Take key status without activating the app so Return and Escape
+                // reach the OK and Cancel buttons.
+                self.appBeforeEditing = NSWorkspace.shared.frontmostApplication
+                self.panel.makeKey()
+            } else {
+                if let app = self.appBeforeEditing, app != NSRunningApplication.current {
+                    app.activate()
+                }
+                self.appBeforeEditing = nil
+                self.scheduleHide(after: Timing.hideDelay)
+            }
         }
     }
 

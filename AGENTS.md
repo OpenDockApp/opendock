@@ -65,6 +65,10 @@ No xcodegen or tuist. Use a scratch `-derivedDataPath` when building from a shel
 - **Persistence:** app settings go in `UserDefaults` with namespaced keys
   (`dock.autoHide`, `dock.bottomGap`, `systemDock.snapshot`, `onboarding.completed`).
   The layout is JSON in Application Support under a folder named by bundle ID.
+- **Edit mode is a draft.** `DockLayoutStore.beginEditing` snapshots the layout;
+  mutations are not written to disk until `commitEditing` (OK). `cancelEditing`
+  restores the snapshot. Drags use `DockDragPayload` strings: `newWidget` from the
+  tray, `placedItem` for tiles already in the dock.
 - **New permission:** add a case to `PermissionCenter.Kind`, the matching
   `INFOPLIST_KEY_*UsageDescription` and `ENABLE_RESOURCE_ACCESS_*` build settings in
   both Debug and Release, and it appears in onboarding automatically.

@@ -62,7 +62,7 @@ private struct WidgetLibraryView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                Toggle("Edit mode", isOn: $layout.isEditing)
+                Button("Edit Dock…") { layout.beginEditing() }
                 Button("Reset to defaults") { layout.reset() }
             }
         }

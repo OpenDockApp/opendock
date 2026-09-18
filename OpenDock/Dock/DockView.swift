@@ -14,17 +14,13 @@ struct DockView: View {
     private var theme: DockTheme { controller.theme }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: theme.barCornerRadius, style: .continuous)
-        HStack(alignment: .top, spacing: theme.spacing) {
-            ForEach(layout.items) { item in
-                DockTileView(item: item, layout: layout, theme: theme)
+        VStack(spacing: 10) {
+            if layout.isEditing {
+                EditTrayView(layout: layout, theme: theme)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            if layout.items.isEmpty {
-                emptyState
-            }
+            bar
         }
-        .padding(theme.padding)
-        .glassEffect(.regular, in: shape)
         .padding(Self.shadowMargin)
         .environment(\.dockTheme, theme)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
@@ -34,8 +30,33 @@ struct DockView: View {
         .animation(.easeInOut(duration: 0.2), value: layout.isEditing)
     }
 
+    private var bar: some View {
+        let shape = RoundedRectangle(cornerRadius: theme.barCornerRadius, style: .continuous)
+        return HStack(alignment: .top, spacing: theme.spacing) {
+            ForEach(layout.items) { item in
+                DockTileView(item: item, layout: layout, theme: theme)
+            }
+            if layout.items.isEmpty {
+                emptyState
+            }
+        }
+        .padding(theme.padding)
+        .overlay {
+            if isBarDropTarget {
+                shape.strokeBorder(theme.accent.opacity(0.8), lineWidth: 2)
+            }
+        }
+        .glassEffect(.regular, in: shape)
+        // Drops that land on the bar but not on a tile go to the end.
+        .dropDestination(for: String.self) { strings, _ in
+            layout.handleDrop(strings, before: nil)
+        } isTargeted: { isBarDropTarget = $0 }
+    }
+
+    @State private var isBarDropTarget = false
+
     private var emptyState: some View {
-        Label("Add widgets from the menu bar", systemImage: "plus.circle")
+        Label(layout.isEditing ? "Drag widgets here" : "Add widgets from the menu bar", systemImage: "plus.circle")
             .font(theme.titleFont)
             .foregroundStyle(.secondary)
             .frame(width: theme.cellSize * 3, height: theme.cellSize)
@@ -88,14 +109,22 @@ private struct DockTileView: View {
                     }
                 }
             }
-            Button("Remove", role: .destructive) { layout.remove(item.id) }
+            if !layout.isEditing {
+                Button("Edit Widgets…") { layout.beginEditing() }
+            }
+            Divider()
+            Button("Remove", role: .destructive) {
+                // Outside edit mode a removal is saved immediately.
+                layout.remove(item.id)
+            }
         }
         .modifier(EditModeWiggle(active: layout.isEditing))
-        .draggable(item.id.uuidString)
-        .dropDestination(for: String.self) { ids, _ in
-            guard let raw = ids.first, let id = UUID(uuidString: raw) else { return false }
-            layout.move(id, before: item.id)
-            return true
+        .draggable(DockDragPayload.placedItem(id: item.id).encoded) {
+            WidgetTile(size: item.size) { widgetBody }
+                .environment(\.dockTheme, theme)
+        }
+        .dropDestination(for: String.self) { strings, _ in
+            layout.handleDrop(strings, before: item.id)
         } isTargeted: { isDropTarget = $0 }
     }
 

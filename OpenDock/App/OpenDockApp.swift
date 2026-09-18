@@ -40,10 +40,13 @@ private struct MenuBarMenu: View {
             set: { controller.autoHide = $0 }
         ))
 
-        Button(controller.layout.isEditing ? "Done Editing" : "Edit Widgets") {
-            controller.layout.isEditing.toggle()
+        if controller.layout.isEditing {
+            Button("Save Changes") { controller.layout.commitEditing() }
+            Button("Discard Changes") { controller.layout.cancelEditing() }
+        } else {
+            Button("Edit Widgets…") { controller.layout.beginEditing() }
+                .keyboardShortcut("e", modifiers: [.command, .option])
         }
-        .keyboardShortcut("e", modifiers: [.command, .option])
 
         Menu("Add Widget") {
             ForEach(WidgetRegistry.shared.descriptors) { descriptor in
