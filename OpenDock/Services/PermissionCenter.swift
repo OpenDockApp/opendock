@@ -2,13 +2,14 @@ import AppKit
 import CoreLocation
 import EventKit
 import Observation
+import OpenDockKit
 
 /// Tracks and requests the optional system permissions that some widgets need.
 /// Nothing in the core dock requires any of these.
 @Observable
 final class PermissionCenter: NSObject {
     enum Kind: String, CaseIterable, Identifiable {
-        case calendars, reminders, location
+        case calendars, reminders, location, media
 
         var id: String { rawValue }
 
@@ -17,6 +18,7 @@ final class PermissionCenter: NSObject {
             case .calendars: "Calendars"
             case .reminders: "Reminders"
             case .location: "Location"
+            case .media: "Media Playback"
             }
         }
 
@@ -25,6 +27,7 @@ final class PermissionCenter: NSObject {
             case .calendars: "Show upcoming events in calendar widgets."
             case .reminders: "Show and check off tasks in reminders widgets."
             case .location: "Get local forecasts for weather widgets."
+            case .media: "Connect Music for Now Playing. Spotify can be connected from the widget."
             }
         }
 
@@ -33,6 +36,7 @@ final class PermissionCenter: NSObject {
             case .calendars: "calendar"
             case .reminders: "checklist"
             case .location: "location.fill"
+            case .media: "music.note"
             }
         }
 
@@ -41,6 +45,7 @@ final class PermissionCenter: NSObject {
             case .calendars: .systemRed
             case .reminders: .systemOrange
             case .location: .systemBlue
+            case .media: .systemPink
             }
         }
 
@@ -50,6 +55,7 @@ final class PermissionCenter: NSObject {
             case .calendars: "Privacy_Calendars"
             case .reminders: "Privacy_Reminders"
             case .location: "Privacy_LocationServices"
+            case .media: "Privacy_Automation"
             }
             return URL(string: "x-apple.systempreferences:com.apple.preference.security?\(anchor)")!
         }
@@ -86,6 +92,13 @@ final class PermissionCenter: NSObject {
         statuses[.calendars] = Self.map(EKEventStore.authorizationStatus(for: .event))
         statuses[.reminders] = Self.map(EKEventStore.authorizationStatus(for: .reminder))
         statuses[.location] = Self.map(locationManager.authorizationStatus)
+        Task {
+            switch await MediaService.shared.permission(for: .music) {
+            case .granted: statuses[.media] = .granted
+            case .denied: statuses[.media] = .denied
+            case .notDetermined: statuses[.media] = .notDetermined
+            }
+        }
     }
 
     /// Asks the system for access, or opens System Settings if the user already declined.
@@ -107,6 +120,11 @@ final class PermissionCenter: NSObject {
             }
         case .location:
             locationManager.requestWhenInUseAuthorization()
+        case .media:
+            Task {
+                _ = await MediaService.shared.connect(.music)
+                refresh()
+            }
         }
     }
 

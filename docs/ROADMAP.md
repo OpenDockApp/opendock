@@ -42,7 +42,7 @@ Goal: discover, install, and update community widgets from inside the app.
 
 ## Phase 4: More native widgets and polish
 
-- [ ] Now Playing with artwork and transport controls
+- [x] Now Playing with Music/Spotify artwork and transport controls
 - [x] Next Meeting with calendar access, countdown, and conference links
 - [x] Weather with saved city, current conditions, highs/lows, and unit selection (Open-Meteo)
 - [ ] Reminders, Mail unread

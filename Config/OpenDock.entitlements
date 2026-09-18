@@ -8,6 +8,8 @@
 	<key>com.apple.security.temporary-exception.apple-events</key>
 	<array>
 		<string>com.apple.systemevents</string>
+		<string>com.apple.Music</string>
+		<string>com.spotify.client</string>
 	</array>
 	<!-- Sparkle: download updates, and reach its installer XPC services from the sandbox. -->
 	<key>com.apple.security.network.client</key>

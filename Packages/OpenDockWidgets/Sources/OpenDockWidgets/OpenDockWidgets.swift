@@ -11,5 +11,6 @@ public enum OpenDockWidgets {
         registry.register(NextMeetingWidget.self)
         registry.register(BatteryWidget.self)
         registry.register(WeatherWidget.self)
+        registry.register(NowPlayingWidget.self)
     }
 }
