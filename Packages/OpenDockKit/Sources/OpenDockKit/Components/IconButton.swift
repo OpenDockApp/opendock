@@ -7,7 +7,7 @@ public struct IconButton: View {
     private let size: CGFloat
     private let action: () -> Void
 
-    public init(_ symbol: String, tint: Color? = nil, size: CGFloat = 36, action: @escaping () -> Void) {
+    public init(_ symbol: String, tint: Color? = nil, size: CGFloat = 24, action: @escaping () -> Void) {
         self.symbol = symbol
         self.tint = tint
         self.size = size

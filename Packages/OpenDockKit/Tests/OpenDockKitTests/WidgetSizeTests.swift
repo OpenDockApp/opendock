@@ -10,7 +10,7 @@ import Testing
     }
 
     @Test func themeFrameIncludesSpacing() {
-        let theme = DockTheme(cellSize: 100, spacing: 10)
+        let theme = DockTheme(cellSize: 100, spacing: 10, padding: 10)
         #expect(theme.frame(for: .wide) == CGSize(width: 320, height: 100))
         #expect(theme.frame(for: .large) == CGSize(width: 210, height: 210))
     }

@@ -23,21 +23,19 @@ private struct ClockView: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { timeline in
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: size == .small ? .leading : .center, spacing: 0) {
                 Text(timeline.date, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute())
-                    .font(size == .small
-                          ? .system(size: 26, weight: .semibold, design: .rounded).monospacedDigit()
-                          : .system(size: 40, weight: .semibold, design: .rounded).monospacedDigit())
+                    .font(size == .small ? theme.statFont : theme.heroFont)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 Text(timeline.date, format: size == .small
                      ? .dateTime.weekday(.abbreviated).day()
                      : .dateTime.weekday(.abbreviated).month(.abbreviated).day())
-                    .font(size == .small ? theme.captionFont : theme.titleFont)
+                    .font(theme.captionFont)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: size == .small ? .leading : .center)
-            .padding(14)
+            .padding(theme.contentPadding)
         }
     }
 }

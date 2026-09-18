@@ -33,8 +33,10 @@ private struct LauncherView: View {
     }
 
     var body: some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: context.size == .small ? 2 : 4)
-        LazyVGrid(columns: columns, spacing: 6) {
+        let theme = context.theme
+        let gap = theme.scaled(4)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: gap), count: context.size == .small ? 2 : 4)
+        LazyVGrid(columns: columns, spacing: gap) {
             ForEach(apps, id: \.self) { url in
                 Button {
                     context.services.openApplication(url)
@@ -42,13 +44,13 @@ private struct LauncherView: View {
                     Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 38, height: 38)
+                        .frame(width: theme.scaled(22), height: theme.scaled(22))
                 }
                 .buttonStyle(.plain)
                 .help(url.deletingPathExtension().lastPathComponent)
             }
         }
-        .padding(12)
+        .padding(theme.scaled(7))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

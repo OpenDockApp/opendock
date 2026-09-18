@@ -6,7 +6,7 @@ public struct SparklineView: View {
     private let tint: Color
     private let lineWidth: CGFloat
 
-    public init(values: [Double], tint: Color = .accentColor, lineWidth: CGFloat = 2) {
+    public init(values: [Double], tint: Color = .accentColor, lineWidth: CGFloat = 1.5) {
         self.values = values
         self.tint = tint
         self.lineWidth = lineWidth

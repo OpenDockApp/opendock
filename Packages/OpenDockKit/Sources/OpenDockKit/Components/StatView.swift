@@ -20,7 +20,7 @@ public struct StatView: View {
         VStack(alignment: .leading, spacing: 2) {
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: theme.scaled(10), weight: .semibold))
                     .foregroundStyle(tint ?? .secondary)
             }
             Text(value)
@@ -35,6 +35,6 @@ public struct StatView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(14)
+        .padding(theme.contentPadding)
     }
 }

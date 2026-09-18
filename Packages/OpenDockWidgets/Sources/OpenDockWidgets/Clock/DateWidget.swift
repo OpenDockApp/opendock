@@ -12,16 +12,19 @@ struct DateWidget: DockWidget {
     )
 
     func body(context: WidgetContext) -> some View {
-        TimelineView(.everyMinute) { timeline in
+        let theme = context.theme
+        return TimelineView(.everyMinute) { timeline in
             VStack(spacing: 0) {
-                Text(timeline.date, format: .dateTime.weekday(.wide))
-                    .font(.system(size: 11, weight: .semibold))
+                Text(timeline.date, format: .dateTime.weekday(.abbreviated))
+                    .font(.system(size: theme.scaled(8), weight: .bold))
                     .foregroundStyle(.red)
                     .textCase(.uppercase)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 Text(timeline.date, format: .dateTime.day())
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .font(.system(size: theme.scaled(24), weight: .semibold, design: .rounded))
                 Text(timeline.date, format: .dateTime.month(.abbreviated))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(theme.captionFont)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

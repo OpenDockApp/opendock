@@ -26,7 +26,7 @@ private struct CPUView: View {
             if size == .small {
                 RingView(progress: sampler.usage, label: "\(Int(sampler.usage * 100))", symbol: "cpu", tint: .blue)
             } else {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: theme.scaled(2)) {
                     HStack {
                         Label("CPU", systemImage: "cpu")
                             .font(theme.captionFont)
@@ -37,7 +37,7 @@ private struct CPUView: View {
                     }
                     SparklineView(values: sampler.history, tint: .blue)
                 }
-                .padding(14)
+                .padding(theme.contentPadding)
             }
         }
         .task { await sampler.run() }

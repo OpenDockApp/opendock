@@ -21,7 +21,7 @@ struct DockView: View {
         }
         .padding(theme.padding)
         .glassEffect(.regular, in: shape)
-        .padding(20) // room for the panel shadow
+        .padding(12) // room for the panel shadow
         .environment(\.dockTheme, theme)
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
             controller.contentSizeChanged(size)
@@ -56,13 +56,13 @@ private struct DockTileView: View {
                     layout.remove(item.id)
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 7, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(width: 20, height: 20)
+                        .frame(width: 16, height: 16)
                         .background(Circle().fill(.red))
                 }
                 .buttonStyle(.plain)
-                .offset(x: -5, y: -5)
+                .offset(x: -4, y: -4)
                 .transition(.scale.combined(with: .opacity))
             }
         }

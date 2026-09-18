@@ -10,11 +10,11 @@ public struct DockTheme: Sendable {
     public var accent: Color
 
     public init(
-        cellSize: CGFloat = 108,
-        spacing: CGFloat = 10,
-        padding: CGFloat = 12,
-        barCornerRadius: CGFloat = 34,
-        tileCornerRadius: CGFloat = 22,
+        cellSize: CGFloat = 64,
+        spacing: CGFloat = 6,
+        padding: CGFloat = 6,
+        barCornerRadius: CGFloat = 22,
+        tileCornerRadius: CGFloat = 16,
         accent: Color = .accentColor
     ) {
         self.cellSize = cellSize
@@ -34,11 +34,20 @@ public struct DockTheme: Sendable {
         )
     }
 
+    /// Multiplier relative to the 64pt reference cell. Widgets scale sizes by this
+    /// so the whole dock grows or shrinks from `cellSize` alone.
+    public var scale: CGFloat { cellSize / 64 }
+
+    /// Inner padding for widget content.
+    public var contentPadding: CGFloat { 8 * scale }
+
+    public func scaled(_ value: CGFloat) -> CGFloat { value * scale }
+
     // Typography presets used across widgets so numbers and captions match.
-    public var statFont: Font { .system(size: 30, weight: .semibold, design: .rounded) }
-    public var titleFont: Font { .system(size: 14, weight: .semibold) }
-    public var captionFont: Font { .system(size: 11, weight: .medium) }
-    public var monoFont: Font { .system(size: 28, weight: .semibold, design: .rounded).monospacedDigit() }
+    public var heroFont: Font { .system(size: 26 * scale, weight: .semibold, design: .rounded).monospacedDigit() }
+    public var statFont: Font { .system(size: 18 * scale, weight: .semibold, design: .rounded).monospacedDigit() }
+    public var titleFont: Font { .system(size: 11 * scale, weight: .semibold) }
+    public var captionFont: Font { .system(size: 9 * scale, weight: .medium) }
 }
 
 private struct DockThemeKey: EnvironmentKey {
