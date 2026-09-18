@@ -153,6 +153,8 @@ private struct WidgetCard: View {
 // MARK: - About
 
 struct AboutSettingsPane: View {
+    let checkForUpdates: () -> Void
+
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -173,9 +175,11 @@ struct AboutSettingsPane: View {
             Text("An open-source widget dock for macOS.")
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
+            Button("Check for Updates…", action: checkForUpdates)
+                .padding(.top, 4)
             Link("github.com/mxvsh/OpenDock", destination: URL(string: "https://github.com/mxvsh/OpenDock")!)
                 .padding(.top, 4)
         }
-        .frame(width: paneWidth, height: 280)
+        .frame(width: paneWidth, height: 320)
     }
 }

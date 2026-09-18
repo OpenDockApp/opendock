@@ -4,12 +4,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let dockController = DockPanelController()
     let permissions = PermissionCenter()
     let systemDock = SystemDockManager()
+    let updater = UpdaterService()
 
     private(set) lazy var onboarding = OnboardingWindowController(
         dock: dockController, permissions: permissions, systemDock: systemDock
     )
     private(set) lazy var settings = SettingsWindowController(
-        dock: dockController, systemDock: systemDock
+        dock: dockController, systemDock: systemDock, updater: updater
     )
     private var statusMenu: StatusMenuController?
 
@@ -17,7 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusMenu = StatusMenuController(
             dock: dockController,
             showSettings: { [unowned self] in settings.show() },
-            showOnboarding: { [unowned self] in onboarding.show() }
+            showOnboarding: { [unowned self] in onboarding.show() },
+            checkForUpdates: { [unowned self] in updater.checkForUpdates() }
         )
         dockController.show()
         if !OnboardingWindowController.hasCompleted {

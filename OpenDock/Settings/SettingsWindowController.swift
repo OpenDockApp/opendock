@@ -7,10 +7,12 @@ final class SettingsWindowController {
     private var window: NSWindow?
     private let dock: DockPanelController
     private let systemDock: SystemDockManager
+    private let updater: UpdaterService
 
-    init(dock: DockPanelController, systemDock: SystemDockManager) {
+    init(dock: DockPanelController, systemDock: SystemDockManager, updater: UpdaterService) {
         self.dock = dock
         self.systemDock = systemDock
+        self.updater = updater
     }
 
     func show() {
@@ -29,7 +31,7 @@ final class SettingsWindowController {
 
         tabs.addTabViewItem(pane("General", symbol: "gearshape", GeneralSettingsPane()))
         tabs.addTabViewItem(pane("Widgets", symbol: "square.grid.2x2", WidgetsSettingsPane()))
-        tabs.addTabViewItem(pane("About", symbol: "info.circle", AboutSettingsPane()))
+        tabs.addTabViewItem(pane("About", symbol: "info.circle", AboutSettingsPane(checkForUpdates: { [updater] in updater.checkForUpdates() })))
 
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]

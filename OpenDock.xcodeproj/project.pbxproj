@@ -21,6 +21,7 @@
 /* Begin PBXBuildFile section */
 		0D000001000000000000A001 /* OpenDockKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0D000001000000000000B001 /* OpenDockKit */; };
 		0D000001000000000000A002 /* OpenDockWidgets in Frameworks */ = {isa = PBXBuildFile; productRef = 0D000001000000000000B002 /* OpenDockWidgets */; };
+		0D000001000000000000A003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 0D000001000000000000B003 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -29,6 +30,7 @@
 			files = (
 				0D000001000000000000A001 /* OpenDockKit in Frameworks */,
 				0D000001000000000000A002 /* OpenDockWidgets in Frameworks */,
+				0D000001000000000000A003 /* Sparkle in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -70,6 +72,7 @@
 			packageProductDependencies = (
 				0D000001000000000000B001 /* OpenDockKit */,
 				0D000001000000000000B002 /* OpenDockWidgets */,
+				0D000001000000000000B003 /* Sparkle */,
 			);
 			productName = OpenDock;
 			productReference = 3C9C9B70305D44ED00AD3283 /* OpenDock.app */;
@@ -102,6 +105,7 @@
 			packageReferences = (
 				0D000001000000000000C001 /* XCLocalSwiftPackageReference "Packages/OpenDockKit" */,
 				0D000001000000000000C002 /* XCLocalSwiftPackageReference "Packages/OpenDockWidgets" */,
+				0D000001000000000000C003 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3C9C9B71305D44ED00AD3283 /* Products */;
@@ -267,6 +271,7 @@
 				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
 				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "OpenDock Debug";
+				INFOPLIST_FILE = Config/OpenDock-Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock moves the system Dock aside so the two docks do not overlap.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
@@ -307,6 +312,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/OpenDock.entitlements;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
 				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				INFOPLIST_FILE = Config/OpenDock-Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock moves the system Dock aside so the two docks do not overlap.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
@@ -363,6 +369,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		0D000001000000000000C003 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		0D000001000000000000B001 /* OpenDockKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -371,6 +388,11 @@
 		0D000001000000000000B002 /* OpenDockWidgets */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = OpenDockWidgets;
+		};
+		0D000001000000000000B003 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D000001000000000000C003 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

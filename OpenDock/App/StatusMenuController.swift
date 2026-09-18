@@ -8,11 +8,18 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let dock: DockPanelController
     private let showSettings: () -> Void
     private let showOnboarding: () -> Void
+    private let checkForUpdates: () -> Void
 
-    init(dock: DockPanelController, showSettings: @escaping () -> Void, showOnboarding: @escaping () -> Void) {
+    init(
+        dock: DockPanelController,
+        showSettings: @escaping () -> Void,
+        showOnboarding: @escaping () -> Void,
+        checkForUpdates: @escaping () -> Void
+    ) {
         self.dock = dock
         self.showSettings = showSettings
         self.showOnboarding = showOnboarding
+        self.checkForUpdates = checkForUpdates
         super.init()
 
         if let button = statusItem.button {
@@ -49,6 +56,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(item("Welcome Guide…") { [showOnboarding] in showOnboarding() })
+        menu.addItem(item("Check for Updates…") { [checkForUpdates] in checkForUpdates() })
         menu.addItem(item("Settings…", key: ",") { [showSettings] in showSettings() })
         menu.addItem(item("Quit OpenDock", key: "q") { NSApp.terminate(nil) })
     }
