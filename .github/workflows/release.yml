@@ -55,8 +55,6 @@ jobs:
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # 0.1.0-beta.1 -> 0.1.0: CFBundleShortVersionString takes dotted numbers only.
-          VERSION="${TAG#v}"; VERSION="${VERSION%%-*}"
           xcodebuild \
             -project OpenDock.xcodeproj \
             -scheme OpenDock \
@@ -64,7 +62,7 @@ jobs:
             -archivePath build/OpenDock.xcarchive \
             -derivedDataPath build \
             archive \
-            MARKETING_VERSION="$VERSION" \
+            MARKETING_VERSION="${TAG#v}" \
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Developer ID Application" \
