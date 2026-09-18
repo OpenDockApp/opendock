@@ -13,6 +13,21 @@ struct FocusSessionTests {
         session.toggle(at: start.addingTimeInterval(600))
         #expect(session.secondsLeft(at: start.addingTimeInterval(660)) == 1380)
     }
+    @Test func resetClearsRunningDeadlineAndPersists() throws {
+        var session = FocusSession()
+        let start = Date(timeIntervalSince1970: 1000)
+        session.reset(minutes: 15)
+        session.toggle(at: start)
+        session.reset(minutes: Int(session.duration / 60), phase: session.phase)
+        let restored = try JSONDecoder().decode(FocusSession.self, from: JSONEncoder().encode(session))
+        #expect(restored.deadline == nil)
+        #expect(restored.secondsLeft(at: start.addingTimeInterval(600)) == 900)
+        #expect(restored.progress(at: start.addingTimeInterval(600)) == 0)
+        #expect(restored.completed == 0)
+        session.toggle(at: start.addingTimeInterval(600))
+        #expect(session.secondsLeft(at: start.addingTimeInterval(610)) == 890)
+    }
+
     @Test func sleepingPastDeadlineCompletesOnlyOnce() throws {
         var session = FocusSession()
         let start = Date(timeIntervalSince1970: 1000)

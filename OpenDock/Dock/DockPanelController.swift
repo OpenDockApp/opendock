@@ -43,7 +43,9 @@ final class DockPanelController {
     private var contentSize: CGSize = .zero
     private var hideTask: Task<Void, Never>?
     private var isMenuTracking = false
-    private var openPopovers: Set<ObjectIdentifier> = []
+    private var openPopovers: [ObjectIdentifier: NSPopover] = [:]
+    private var appBeforePopover: NSRunningApplication?
+    private var popoverDismissedByOutsideClick = false
     private var mouseMonitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
     private var tracker: HoverTracker?
@@ -68,7 +70,7 @@ final class DockPanelController {
     private let revealZone: CGFloat = 2
 
     init() {
-        let host = NSHostingView(rootView: DockView(controller: self))
+        let host = DockHostingView(rootView: DockView(controller: self))
         host.sizingOptions = [.preferredContentSize]
         panel.contentView = host
         panel.acceptsMouseMovedEvents = true
@@ -108,8 +110,7 @@ final class DockPanelController {
         ) { [weak self] notification in
             MainActor.assumeIsolated {
                 guard let popover = notification.object as? NSPopover else { return }
-                self?.openPopovers.insert(ObjectIdentifier(popover))
-                self?.cancelHide()
+                self?.popoverDidShow(popover)
             }
         })
         observers.append(center.addObserver(
@@ -117,13 +118,90 @@ final class DockPanelController {
         ) { [weak self] notification in
             MainActor.assumeIsolated {
                 guard let popover = notification.object as? NSPopover else { return }
-                self?.openPopovers.remove(ObjectIdentifier(popover))
-                self?.scheduleHide(after: Timing.hideDelay)
+                self?.popoverDidClose(popover)
             }
         })
 
+        installPopoverDismissalMonitors()
         installMouseMonitors()
         observeEditing()
+    }
+
+    // MARK: Widget popovers
+
+    private func belongsToDock(_ window: NSWindow?) -> Bool {
+        var candidate = window
+        while let current = candidate {
+            if current === panel { return true }
+            candidate = current.parent
+        }
+        return false
+    }
+
+    private func popoverDidShow(_ popover: NSPopover) {
+        guard let window = popover.contentViewController?.view.window,
+              belongsToDock(window) || belongsToDock(NSApp.currentEvent?.window) else { return }
+        if openPopovers.isEmpty {
+            appBeforePopover = NSWorkspace.shared.frontmostApplication
+            popoverDismissedByOutsideClick = false
+        }
+        openPopovers[ObjectIdentifier(popover)] = popover
+        popover.behavior = .transient
+        cancelHide()
+
+        // A non-activating panel must explicitly lend key focus to its popover.
+        // Otherwise the first control click can merely focus the window, and
+        // prominent buttons are drawn in their inactive (gray) appearance.
+        panel.becomesKeyOnlyIfNeeded = false
+        panel.makeKey()
+        window.makeKey()
+    }
+
+    private func popoverDidClose(_ popover: NSPopover) {
+        guard openPopovers.removeValue(forKey: ObjectIdentifier(popover)) != nil else { return }
+        guard openPopovers.isEmpty else { return }
+        panel.becomesKeyOnlyIfNeeded = !layout.isEditing
+        if !layout.isEditing {
+            panel.resignKey()
+            // Escape/programmatic dismissal returns focus. Outside clicks must
+            // go to the clicked app/window without reactivating the previous app.
+            if !popoverDismissedByOutsideClick,
+               let previous = appBeforePopover, previous != NSRunningApplication.current,
+               NSWorkspace.shared.frontmostApplication == NSRunningApplication.current {
+                previous.activate()
+            }
+        }
+        appBeforePopover = nil
+        scheduleHide(after: Timing.hideDelay)
+    }
+
+    private func closeWidgetPopovers() {
+        for popover in Array(openPopovers.values) { popover.performClose(nil) }
+    }
+
+    private func installPopoverDismissalMonitors() {
+        let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: clicks, handler: { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.popoverDismissedByOutsideClick = true
+                self?.closeWidgetPopovers()
+            }
+        }) { mouseMonitors.append(monitor) }
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: clicks, handler: { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self, !self.openPopovers.isEmpty, !self.isMenuTracking else { return }
+                var window = event.window
+                while let candidate = window {
+                    if self.openPopovers.values.contains(where: { $0.contentViewController?.view.window === candidate }) {
+                        return
+                    }
+                    window = candidate.parent
+                }
+                self.popoverDismissedByOutsideClick = true
+                self.closeWidgetPopovers()
+            }
+            return event
+        }) { mouseMonitors.append(monitor) }
     }
 
     // MARK: Visibility
@@ -136,6 +214,7 @@ final class DockPanelController {
     }
 
     func hide() {
+        closeWidgetPopovers()
         isVisible = false
         isLive = false
         cancelHide()
@@ -241,7 +320,7 @@ final class DockPanelController {
             // While editing, any click on the panel makes it key again (without
             // activating the app) so OK keeps its accent color and Return and Escape
             // reach the buttons. Outside edit mode, clicking a widget leaves focus alone.
-            self.panel.becomesKeyOnlyIfNeeded = !editing
+            self.panel.becomesKeyOnlyIfNeeded = !editing && self.openPopovers.isEmpty
             if editing {
                 self.appBeforeEditing = NSWorkspace.shared.frontmostApplication
                 // SwiftUI adds the tray on the next update. Wait for it, measure,
