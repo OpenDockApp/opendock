@@ -6,7 +6,14 @@ import OpenDockKit
 @Observable
 final class DockLayoutStore {
     private(set) var items: [DockItem] = []
-    var isEditing = false
+    var isEditing = false {
+        didSet {
+            if isEditing != oldValue { onEditingChanged?(isEditing) }
+        }
+    }
+
+    /// Lets the panel controller react to edit mode without observation plumbing.
+    @ObservationIgnored var onEditingChanged: ((Bool) -> Void)?
 
     private let fileURL: URL
 

@@ -193,18 +193,9 @@ final class DockPanelController {
 
     /// Keep the dock out while editing, tuck it away when editing ends.
     private func observeEditing() {
-        withObservationTracking {
-            _ = layout.isEditing
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self else { return }
-                if self.layout.isEditing {
-                    self.reveal()
-                } else {
-                    self.scheduleHide(after: Timing.hideDelay)
-                }
-                self.observeEditing()
-            }
+        layout.onEditingChanged = { [weak self] editing in
+            guard let self else { return }
+            editing ? self.reveal() : self.scheduleHide(after: Timing.hideDelay)
         }
     }
 
