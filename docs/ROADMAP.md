@@ -1,20 +1,20 @@
 # OpenDock Roadmap
 
-## Phase 1: Base (current)
+## Phase 1: Base (done)
 
 Goal: a floating glass dock with native widgets and a clean SDK, built and committed.
 
-- [ ] Strip template code, set up folder structure and local Swift packages
-- [ ] `OpenDockKit`: `DockWidget` protocol, `WidgetDescriptor`, `WidgetSize`, `WidgetContext`, `WidgetRegistry`, theme tokens
-- [ ] Shared UI components: tile container, stat, ring, sparkline, icon button
-- [ ] Floating `NSPanel` at screen bottom, non-activating, all spaces, Liquid Glass background
-- [ ] Dock layout engine with size grid and `GlassEffectContainer`
-- [ ] Menu bar item with show/hide, edit mode, quit
-- [ ] First-party widgets: Clock, Date, App Launcher, CPU ring
-- [ ] Persist layout to disk
-- [ ] Edit mode: reorder and remove
+- [x] Strip template code, set up folder structure and local Swift packages
+- [x] `OpenDockKit`: `DockWidget` protocol, `WidgetDescriptor`, `WidgetSize`, `WidgetContext`, `WidgetRegistry`, theme tokens
+- [x] Shared UI components: tile container, stat, ring, sparkline, icon button
+- [x] Floating `NSPanel` at screen bottom, non-activating, all spaces, Liquid Glass background
+- [x] Dock layout engine with size grid and `GlassEffectContainer`
+- [x] Menu bar item with show/hide, edit mode, quit
+- [x] First-party widgets: Clock, Date, App Launcher, CPU ring
+- [x] Persist layout to disk
+- [x] Edit mode: reorder and remove
 
-## Phase 2: Scripting and React
+## Phase 2: Scripting and React (next)
 
 Goal: third parties can build widgets without Xcode.
 
