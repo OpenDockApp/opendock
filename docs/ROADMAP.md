@@ -43,7 +43,8 @@ Goal: discover, install, and update community widgets from inside the app.
 ## Phase 4: More native widgets and polish
 
 - [ ] Now Playing with artwork and transport controls
-- [ ] Weather (WeatherKit), Calendar, Reminders, Mail unread
+- [x] Next Meeting with calendar access, countdown, and conference links
+- [ ] Weather, Reminders, Mail unread
 - [ ] Battery, memory, network throughput, disk
 - [ ] Wi‑Fi, Bluetooth, Do Not Disturb toggles
 - [x] Focus timer with persistent sessions, pause/resume, and breaks

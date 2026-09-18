@@ -6,15 +6,18 @@ public struct HostServices {
     public var openURL: (URL) -> Void
     public var openApplication: (URL) -> Void
     public var storage: WidgetStorage
+    public var meetings: MeetingService
 
     public init(
         openURL: @escaping (URL) -> Void,
         openApplication: @escaping (URL) -> Void,
-        storage: WidgetStorage
+        storage: WidgetStorage,
+        meetings: MeetingService = .shared
     ) {
         self.openURL = openURL
         self.openApplication = openApplication
         self.storage = storage
+        self.meetings = meetings
     }
 
     /// Default implementation backed by NSWorkspace and UserDefaults.
