@@ -177,7 +177,7 @@ struct AboutSettingsPane: View {
                 .padding(.top, 4)
             Button("Check for Updates…", action: checkForUpdates)
                 .padding(.top, 4)
-            Link("github.com/mxvsh/OpenDock", destination: URL(string: "https://github.com/mxvsh/OpenDock")!)
+            Link("github.com/OpenDockApp/opendock", destination: URL(string: "https://github.com/OpenDockApp/opendock")!)
                 .padding(.top, 4)
         }
         .frame(width: paneWidth, height: 320)
