@@ -266,6 +266,7 @@
 				CODE_SIGN_ENTITLEMENTS = Config/OpenDock.entitlements;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
 				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "OpenDock Debug";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock moves the system Dock aside so the two docks do not overlap.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
@@ -278,7 +279,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.monawwar.OpenDock;
+				PRODUCT_BUNDLE_IDENTIFIER = com.monawwar.OpenDock.Debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

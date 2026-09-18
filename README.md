@@ -12,6 +12,10 @@ xcodebuild -project OpenDock.xcodeproj -scheme OpenDock build
 cd Packages/OpenDockKit && swift test
 ```
 
+Debug builds use the bundle identifier `com.monawwar.OpenDock.Debug` and show as
+"OpenDock Debug", so they keep their own settings, layout, login item and permissions
+separate from a release install.
+
 ## Writing a native widget
 
 Add a type to `Packages/OpenDockWidgets` and register it in `OpenDockWidgets.registerAll`.

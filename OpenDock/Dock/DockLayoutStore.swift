@@ -58,7 +58,7 @@ final class DockLayoutStore {
 
     private static var defaultFileURL: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "OpenDock", directoryHint: .isDirectory)
+            .appending(path: Bundle.main.bundleIdentifier ?? "OpenDock", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appending(path: "layout.json")
     }
