@@ -1,5 +1,4 @@
 import AppKit
-import OpenDockKit
 
 /// The menu bar item. A plain AppKit NSMenu, rebuilt each time it opens so titles
 /// and checkmarks reflect the current state.
@@ -47,16 +46,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
                 layout.beginEditing()
             })
         }
-
-        let addMenu = NSMenu()
-        for descriptor in WidgetRegistry.shared.descriptors {
-            let entry = item(descriptor.name) { layout.add(descriptor) }
-            entry.image = NSImage(systemSymbolName: descriptor.symbol, accessibilityDescription: nil)
-            addMenu.addItem(entry)
-        }
-        let addItem = NSMenuItem(title: "Add Widget", action: nil, keyEquivalent: "")
-        addItem.submenu = addMenu
-        menu.addItem(addItem)
 
         menu.addItem(.separator())
         menu.addItem(item("Welcome Guide…") { [showOnboarding] in showOnboarding() })

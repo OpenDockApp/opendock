@@ -56,10 +56,17 @@ struct DockView: View {
     @State private var isBarDropTarget = false
 
     private var emptyState: some View {
-        Label(layout.isEditing ? "Drag widgets here" : "Add widgets from the menu bar", systemImage: "plus.circle")
-            .font(theme.titleFont)
-            .foregroundStyle(.secondary)
-            .frame(width: theme.cellSize * 3, height: theme.cellSize)
+        Button {
+            layout.beginEditing()
+        } label: {
+            Label(layout.isEditing ? "Drag widgets here" : "Add Widgets", systemImage: "plus.circle")
+                .font(theme.titleFont)
+                .foregroundStyle(.secondary)
+                .frame(width: theme.cellSize * 3, height: theme.cellSize)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(layout.isEditing)
     }
 }
 
