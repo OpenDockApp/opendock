@@ -14,7 +14,9 @@ final class DockPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // The window shadow traces the transparent window's outline as a dark stroke
+        // around the whole content. Liquid Glass draws its own shadow instead.
+        hasShadow = false
         hidesOnDeactivate = false
         isMovableByWindowBackground = false
         titleVisibility = .hidden
