@@ -197,10 +197,12 @@ final class DockPanelController {
     private func observeEditing() {
         layout.onEditingChanged = { [weak self] editing in
             guard let self else { return }
+            // While editing, any click on the panel makes it key again (without
+            // activating the app) so OK keeps its accent color and Return and Escape
+            // reach the buttons. Outside edit mode, clicking a widget leaves focus alone.
+            self.panel.becomesKeyOnlyIfNeeded = !editing
             if editing {
                 self.reveal()
-                // Take key status without activating the app so Return and Escape
-                // reach the OK and Cancel buttons.
                 self.appBeforeEditing = NSWorkspace.shared.frontmostApplication
                 self.panel.makeKey()
             } else {
