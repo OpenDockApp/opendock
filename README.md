@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.webp" alt="OpenDock" width="128" height="128">
+  <img src="assets/logo.webp" alt="OpenDock" width="128" height="128">
 </p>
 
 <h1 align="center">OpenDock</h1>
