@@ -45,7 +45,8 @@ Goal: discover, install, and update community widgets from inside the app.
 - [ ] Now Playing with artwork and transport controls
 - [x] Next Meeting with calendar access, countdown, and conference links
 - [ ] Weather, Reminders, Mail unread
-- [ ] Battery, memory, network throughput, disk
+- [x] Battery with charge, power source, and time estimates
+- [ ] Memory, network throughput, disk
 - [ ] Wi‑Fi, Bluetooth, Do Not Disturb toggles
 - [x] Focus timer with persistent sessions, pause/resume, and breaks
 - [ ] Stopwatch
