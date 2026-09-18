@@ -34,6 +34,10 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
+      - name: Downgrade project format for Xcode 26
+        # The project is saved by Xcode 27 (format 110); the runner's Xcode 26 opens 77.
+        run: sed -i '' 's/objectVersion = 110;/objectVersion = 77;/' OpenDock.xcodeproj/project.pbxproj
+
       - name: Archive
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
