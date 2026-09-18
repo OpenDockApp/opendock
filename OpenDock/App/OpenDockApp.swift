@@ -19,6 +19,7 @@ struct OpenDockApp: App {
             SettingsView()
                 .environment(delegate.dockController.layout)
                 .environment(delegate.dockController)
+                .environment(delegate.systemDock)
         }
     }
 }

@@ -3,7 +3,10 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let dockController = DockPanelController()
     let permissions = PermissionCenter()
-    private(set) lazy var onboarding = OnboardingWindowController(dock: dockController, permissions: permissions)
+    let systemDock = SystemDockManager()
+    private(set) lazy var onboarding = OnboardingWindowController(
+        dock: dockController, permissions: permissions, systemDock: systemDock
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         dockController.show()

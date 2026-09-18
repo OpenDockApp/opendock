@@ -72,6 +72,8 @@ private struct WidgetLibraryView: View {
 
 private struct GeneralSettingsView: View {
     @Environment(DockPanelController.self) private var controller
+    @Environment(SystemDockManager.self) private var systemDock
+    @State private var edge: SystemDockManager.Edge = .left
 
     var body: some View {
         @Bindable var controller = controller
@@ -86,6 +88,26 @@ private struct GeneralSettingsView: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 40, alignment: .trailing)
                 }
+            }
+            Section {
+                if systemDock.isTuckedAway {
+                    LabeledContent("System Dock is moved aside") {
+                        Button("Restore") { systemDock.restore() }
+                    }
+                } else {
+                    Picker("Move system Dock to", selection: $edge) {
+                        Text("Left").tag(SystemDockManager.Edge.left)
+                        Text("Right").tag(SystemDockManager.Edge.right)
+                    }
+                    Button("Move Aside and Auto-hide") { systemDock.tuckAway(to: edge) }
+                }
+                if let error = systemDock.lastError {
+                    Text(error).font(.caption).foregroundStyle(.orange)
+                }
+            } header: {
+                Text("System Dock")
+            } footer: {
+                Text("The system Dock also appears when the pointer reaches the bottom edge. Moving it to a side stops the two from overlapping.")
             }
         }
         .formStyle(.grouped)

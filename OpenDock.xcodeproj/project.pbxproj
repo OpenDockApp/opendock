@@ -263,9 +263,11 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 								GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/OpenDock.entitlements;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
 				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock moves the system Dock aside so the two docks do not overlap.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "OpenDock uses your location for local weather forecasts.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OpenDock uses your location for local weather forecasts.";
@@ -301,9 +303,11 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 								GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/OpenDock.entitlements;
 				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
 				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock moves the system Dock aside so the two docks do not overlap.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "OpenDock uses your location for local weather forecasts.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OpenDock uses your location for local weather forecasts.";

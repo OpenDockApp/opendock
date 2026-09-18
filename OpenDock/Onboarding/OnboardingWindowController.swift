@@ -12,10 +12,12 @@ final class OnboardingWindowController {
     private var window: NSWindow?
     private let dock: DockPanelController
     private let permissions: PermissionCenter
+    private let systemDock: SystemDockManager
 
-    init(dock: DockPanelController, permissions: PermissionCenter) {
+    init(dock: DockPanelController, permissions: PermissionCenter, systemDock: SystemDockManager) {
         self.dock = dock
         self.permissions = permissions
+        self.systemDock = systemDock
     }
 
     func show() {
@@ -25,7 +27,7 @@ final class OnboardingWindowController {
             return
         }
 
-        let root = OnboardingView(dock: dock, permissions: permissions) { [weak self] in
+        let root = OnboardingView(dock: dock, permissions: permissions, systemDock: systemDock) { [weak self] in
             UserDefaults.standard.set(true, forKey: Self.completedKey)
             self?.close()
         }

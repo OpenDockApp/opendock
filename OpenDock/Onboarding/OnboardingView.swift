@@ -4,6 +4,7 @@ import OpenDockKit
 struct OnboardingView: View {
     let dock: DockPanelController
     let permissions: PermissionCenter
+    let systemDock: SystemDockManager
     let onFinish: () -> Void
 
     @State private var step: Step = .welcome
@@ -18,7 +19,7 @@ struct OnboardingView: View {
                 switch step {
                 case .welcome: WelcomeStep()
                 case .permissions: PermissionsStep(permissions: permissions)
-                case .setup: SetupStep(dock: dock)
+                case .setup: SetupStep(dock: dock, systemDock: systemDock)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -194,6 +195,7 @@ private struct PermissionRow: View {
 
 private struct SetupStep: View {
     let dock: DockPanelController
+    let systemDock: SystemDockManager
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
 
     var body: some View {
@@ -216,11 +218,25 @@ private struct SetupStep: View {
                         .labelsHidden()
                         .toggleStyle(.switch)
                 }
-                SettingRow(symbol: "dock.rectangle", title: "System Dock", detail: "Turn on \u{201C}Automatically hide and show the Dock\u{201D} so the two don\u{2019}t overlap.") {
-                    Button("Open") {
-                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension")!)
+                SettingRow(
+                    symbol: "dock.rectangle",
+                    title: "System Dock",
+                    detail: systemDock.isTuckedAway
+                        ? "Moved to the left edge and auto-hidden. Restore it any time from Settings."
+                        : "Move the system Dock to the left edge and auto-hide it, so it stops popping up at the bottom."
+                ) {
+                    if systemDock.isTuckedAway {
+                        Button("Restore") { systemDock.restore() }
+                            .buttonStyle(.glass)
+                    } else {
+                        Button("Move Aside") { systemDock.tuckAway() }
+                            .buttonStyle(.glass)
                     }
-                    .buttonStyle(.glass)
+                }
+                if let error = systemDock.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
             Spacer()

@@ -114,3 +114,8 @@ registries by URL and install from a local folder for development with live relo
 
 Direct download, notarized, App Sandbox enabled with entitlements added only where a
 native widget needs them. App Store distribution is not a goal for v1.
+
+Current entitlements beyond the sandbox: calendars and location for widgets, and an
+Apple Events exception for System Events so OpenDock can move the system Dock to a side
+edge (`Config/OpenDock.entitlements`). A sandboxed app cannot disable the system Dock
+outright; that would need a non-sandboxed build.
