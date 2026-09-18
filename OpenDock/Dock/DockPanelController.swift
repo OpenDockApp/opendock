@@ -34,6 +34,10 @@ final class DockPanelController {
     /// Whether the dock is currently slid in (only meaningful when auto-hide is on).
     private(set) var isRevealed = true
 
+    /// Whether widgets should render and update. False while the dock is off screen,
+    /// so clocks, animations and samplers stop instead of burning main-thread time.
+    private(set) var isLive = true
+
     private let panel = DockPanel()
     private var hostingView: NSHostingView<DockView>?
     private var contentSize: CGSize = .zero
@@ -109,6 +113,7 @@ final class DockPanelController {
 
     func hide() {
         isVisible = false
+        isLive = false
         cancelHide()
         panel.orderOut(nil)
     }
@@ -248,9 +253,13 @@ final class DockPanelController {
         let target = shown ? restingFrame(on: screen) : hiddenFrame(on: screen)
         let alpha: CGFloat = shown ? 1 : 0
 
+        // Go live before sliding in; stop only after sliding out finishes.
+        if shown { isLive = isVisible }
+
         guard animated else {
             panel.setFrame(target, display: true)
             panel.alphaValue = alpha
+            if !shown { isLive = false }
             return
         }
         NSAnimationContext.runAnimationGroup { context in
@@ -258,6 +267,12 @@ final class DockPanelController {
             context.timingFunction = CAMediaTimingFunction(name: shown ? .easeOut : .easeIn)
             panel.animator().setFrame(target, display: true)
             panel.animator().alphaValue = alpha
+        } completionHandler: { [weak self] in
+            MainActor.assumeIsolated {
+                // Skip if the dock was revealed again while sliding out.
+                guard let self, !shown, self.autoHide, !self.isRevealed else { return }
+                self.isLive = false
+            }
         }
     }
 }

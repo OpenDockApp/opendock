@@ -34,7 +34,7 @@ struct DockView: View {
         let shape = RoundedRectangle(cornerRadius: theme.barCornerRadius, style: .continuous)
         return HStack(alignment: .top, spacing: theme.spacing) {
             ForEach(layout.items) { item in
-                DockTileView(item: item, layout: layout, theme: theme)
+                DockTileView(item: item, layout: layout, theme: theme, isLive: controller.isLive)
             }
             if layout.items.isEmpty {
                 emptyState
@@ -75,6 +75,8 @@ private struct DockTileView: View {
     let item: DockItem
     let layout: DockLayoutStore
     let theme: DockTheme
+    /// False while the dock is off screen; widget views are torn down to stop updates.
+    let isLive: Bool
 
     @State private var isDropTarget = false
 
@@ -137,6 +139,15 @@ private struct DockTileView: View {
 
     @ViewBuilder
     private var widgetBody: some View {
+        if !isLive {
+            Color.clear
+        } else {
+            liveWidgetBody
+        }
+    }
+
+    @ViewBuilder
+    private var liveWidgetBody: some View {
         if let widget = WidgetRegistry.shared.widget(for: item.widgetID) {
             widget.view(context: WidgetContext(
                 size: item.size,
