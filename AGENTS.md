@@ -5,20 +5,21 @@ Guide for coding agents working on OpenDock. Read `docs/PRODUCT.md`,
 
 ## What this is
 
-A native macOS 26+ widget dock. SwiftUI with Liquid Glass, a menu bar agent app
-(`LSUIElement`), sandboxed, distributed outside the App Store. Only macOS; do not add
+A native macOS 26+ widget dock. SwiftUI with Liquid Glass inside AppKit-managed
+windows, a menu bar agent app (`LSUIElement`), sandboxed, distributed outside the App Store. Only macOS; do not add
 iOS or cross-platform code.
 
 ## Layout
 
 ```
 OpenDock/                 App target (file-system synchronized group)
-  App/                    OpenDockApp (MenuBarExtra + Settings scenes), AppDelegate
+  App/                    OpenDockMain (@main, AppKit lifecycle), AppDelegate,
+                          StatusMenuController (NSStatusItem + NSMenu)
   Dock/                   DockPanel (NSPanel), DockPanelController (frame, auto-hide),
                           DockView (glass bar + tiles), DockLayoutStore (persisted layout)
   Onboarding/             First-run window and steps
   Services/               PermissionCenter, LaunchAtLogin, SystemDockManager
-  Settings/               Settings window
+  Settings/               SettingsWindowController + SwiftUI SettingsView
   Resources/              Assets
 Packages/
   OpenDockKit/            Public widget SDK: DockWidget, WidgetDescriptor, WidgetSize,
@@ -75,8 +76,10 @@ No xcodegen or tuist. Use a scratch `-derivedDataPath` when building from a shel
 
 ## Pitfalls already hit
 
-- `NSApp.delegate` is SwiftUI's wrapper when using `@NSApplicationDelegateAdaptor`.
-  Never cast it to `AppDelegate`; pass objects down from the adaptor instead.
+- The app uses the AppKit lifecycle on purpose. SwiftUI `MenuBarExtra` menus lagged
+  on hover, so the status menu is a plain `NSMenu` rebuilt in `menuNeedsUpdate`. Do not
+  move back to a SwiftUI `App`/`MenuBarExtra`. Windows (settings, onboarding) are
+  `NSWindow`s hosting SwiftUI; there is no SwiftUI `Settings` scene.
 - The dock panel must stay a non-activating borderless `NSPanel` so it never steals
   focus. Hover uses an `NSTrackingArea` with `.activeAlways`; reveal uses global and
   local mouse-moved monitors (no Accessibility permission needed).
