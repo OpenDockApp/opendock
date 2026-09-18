@@ -22,9 +22,9 @@ final class SettingsWindowController {
     }
 
     private func makeWindow() -> NSWindow {
-        let tabs = NSTabViewController()
+        let tabs = InstantResizeTabViewController()
         tabs.tabStyle = .toolbar
-        tabs.transitionOptions = [.crossfade, .allowUserInteraction]
+        tabs.transitionOptions = []
         tabs.canPropagateSelectedChildViewControllerTitle = true
 
         tabs.addTabViewItem(pane("General", symbol: "gearshape", GeneralSettingsPane()))
@@ -52,5 +52,20 @@ final class SettingsWindowController {
         item.label = title
         item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
         return item
+    }
+}
+
+/// Switches panes with no crossfade and snaps the window to the new pane's height
+/// before it appears, instead of AppKit's slow animated resize.
+private final class InstantResizeTabViewController: NSTabViewController {
+    override func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+        if let window = view.window, let pane = tabViewItem?.viewController {
+            let size = pane.preferredContentSize == .zero ? pane.view.fittingSize : pane.preferredContentSize
+            var frame = window.frameRect(forContentRect: CGRect(origin: .zero, size: size))
+            // Keep the top edge fixed, as macOS settings windows do.
+            frame.origin = CGPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
+            window.setFrame(frame, display: true, animate: false)
+        }
+        super.tabView(tabView, willSelect: tabViewItem)
     }
 }
