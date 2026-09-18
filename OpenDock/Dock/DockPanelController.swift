@@ -46,6 +46,9 @@ final class DockPanelController {
     private var mouseMonitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
     private var tracker: HoverTracker?
+    /// Number of frame animations in flight; see `contentSizeChanged`.
+    private var frameAnimations = 0
+    private var isAnimatingFrame: Bool { frameAnimations > 0 }
     /// The app that was frontmost when editing began, so keyboard focus can go back to it.
     private var appBeforeEditing: NSRunningApplication?
 
@@ -124,9 +127,20 @@ final class DockPanelController {
 
     /// Called by the dock view whenever its content size changes.
     func contentSizeChanged(_ size: CGSize) {
-        guard size.width > 0, size.height > 0 else { return }
+        guard size.width > 0, size.height > 0, size != contentSize else { return }
         contentSize = size
-        applyFrame(animated: false)
+        // A plain setFrame during a slide is undone when the slide finishes, so
+        // retarget the running animation instead.
+        applyFrame(animated: isAnimatingFrame)
+    }
+
+    /// Lays out the SwiftUI content now and records its size, so a slide-in that
+    /// starts right after a content change targets the right height.
+    private func measureContent() {
+        guard let host = hostingView else { return }
+        host.layoutSubtreeIfNeeded()
+        let size = host.fittingSize
+        if size.width > 0, size.height > 0 { contentSize = size }
     }
 
     // MARK: Auto-hide
@@ -207,9 +221,18 @@ final class DockPanelController {
             // reach the buttons. Outside edit mode, clicking a widget leaves focus alone.
             self.panel.becomesKeyOnlyIfNeeded = !editing
             if editing {
-                self.reveal()
                 self.appBeforeEditing = NSWorkspace.shared.frontmostApplication
-                self.panel.makeKey()
+                // SwiftUI adds the tray on the next update. Wait for it, measure,
+                // then reveal at the full height.
+                DispatchQueue.main.async {
+                    self.measureContent()
+                    if self.isRevealed || !self.autoHide {
+                        self.applyFrame(animated: self.isAnimatingFrame)
+                    } else {
+                        self.reveal()
+                    }
+                    self.panel.makeKey()
+                }
             } else {
                 if let app = self.appBeforeEditing, app != NSRunningApplication.current {
                     app.activate()
@@ -262,6 +285,7 @@ final class DockPanelController {
             if !shown { isLive = false }
             return
         }
+        frameAnimations += 1
         NSAnimationContext.runAnimationGroup { context in
             context.duration = Timing.slide
             context.timingFunction = CAMediaTimingFunction(name: shown ? .easeOut : .easeIn)
@@ -269,6 +293,7 @@ final class DockPanelController {
             panel.animator().alphaValue = alpha
         } completionHandler: { [weak self] in
             MainActor.assumeIsolated {
+                self?.frameAnimations -= 1
                 // Skip if the dock was revealed again while sliding out.
                 guard let self, !shown, self.autoHide, !self.isRevealed else { return }
                 self.isLive = false
