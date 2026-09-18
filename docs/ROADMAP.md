@@ -46,7 +46,8 @@ Goal: discover, install, and update community widgets from inside the app.
 - [ ] Weather (WeatherKit), Calendar, Reminders, Mail unread
 - [ ] Battery, memory, network throughput, disk
 - [ ] Wi‑Fi, Bluetooth, Do Not Disturb toggles
-- [ ] Timer, stopwatch, Pomodoro
+- [x] Focus timer with persistent sessions, pause/resume, and breaks
+- [ ] Stopwatch
 - [ ] Multiple docks and edge placement
 - [ ] Keyboard shortcuts, accessibility pass, reduced transparency support
 - [ ] Notarized release pipeline and Sparkle updates

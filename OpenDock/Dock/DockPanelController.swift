@@ -43,6 +43,7 @@ final class DockPanelController {
     private var contentSize: CGSize = .zero
     private var hideTask: Task<Void, Never>?
     private var isMenuTracking = false
+    private var openPopovers: Set<ObjectIdentifier> = []
     private var mouseMonitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
     private var tracker: HoverTracker?
@@ -97,6 +98,26 @@ final class DockPanelController {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.isMenuTracking = false
+                self?.scheduleHide(after: Timing.hideDelay)
+            }
+        })
+
+        // Widget controls live in popovers outside the panel's tracking area.
+        observers.append(center.addObserver(
+            forName: NSPopover.didShowNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            MainActor.assumeIsolated {
+                guard let popover = notification.object as? NSPopover else { return }
+                self?.openPopovers.insert(ObjectIdentifier(popover))
+                self?.cancelHide()
+            }
+        })
+        observers.append(center.addObserver(
+            forName: NSPopover.didCloseNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            MainActor.assumeIsolated {
+                guard let popover = notification.object as? NSPopover else { return }
+                self?.openPopovers.remove(ObjectIdentifier(popover))
                 self?.scheduleHide(after: Timing.hideDelay)
             }
         })
@@ -182,6 +203,7 @@ final class DockPanelController {
     private var shouldStayRevealed: Bool {
         layout.isEditing
             || isMenuTracking
+            || !openPopovers.isEmpty
             || NSEvent.pressedMouseButtons != 0
             || panel.frame.contains(NSEvent.mouseLocation)
     }

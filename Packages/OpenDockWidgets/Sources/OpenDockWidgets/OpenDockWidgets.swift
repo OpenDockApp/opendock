@@ -7,5 +7,6 @@ public enum OpenDockWidgets {
         registry.register(DateWidget.self)
         registry.register(LauncherWidget.self)
         registry.register(CPUWidget.self)
+        registry.register(FocusTimerWidget.self)
     }
 }
