@@ -12,7 +12,7 @@ struct OpenDockApp: App {
 
     var body: some Scene {
         MenuBarExtra("OpenDock", systemImage: "dock.rectangle") {
-            MenuBarMenu(controller: delegate.dockController)
+            MenuBarMenu(controller: delegate.dockController, onboarding: delegate.onboarding)
         }
 
         Settings {
@@ -26,6 +26,7 @@ struct OpenDockApp: App {
 private struct MenuBarMenu: View {
     @Environment(\.openSettings) private var openSettings
     let controller: DockPanelController
+    let onboarding: OnboardingWindowController
 
     var body: some View {
         Button(controller.isVisible ? "Hide Dock" : "Show Dock") {
@@ -52,6 +53,10 @@ private struct MenuBarMenu: View {
         }
 
         Divider()
+
+        Button("Welcome Guide…") {
+            onboarding.show()
+        }
 
         Button("Settings…") {
             openSettings()
