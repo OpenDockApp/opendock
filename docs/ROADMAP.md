@@ -1,0 +1,59 @@
+# OpenDock Roadmap
+
+## Phase 1: Base (current)
+
+Goal: a floating glass dock with native widgets and a clean SDK, built and committed.
+
+- [ ] Strip template code, set up folder structure and local Swift packages
+- [ ] `OpenDockKit`: `DockWidget` protocol, `WidgetDescriptor`, `WidgetSize`, `WidgetContext`, `WidgetRegistry`, theme tokens
+- [ ] Shared UI components: tile container, stat, ring, sparkline, icon button
+- [ ] Floating `NSPanel` at screen bottom, non-activating, all spaces, Liquid Glass background
+- [ ] Dock layout engine with size grid and `GlassEffectContainer`
+- [ ] Menu bar item with show/hide, edit mode, quit
+- [ ] First-party widgets: Clock, Date, App Launcher, CPU ring
+- [ ] Persist layout to disk
+- [ ] Edit mode: reorder and remove
+
+## Phase 2: Scripting and React
+
+Goal: third parties can build widgets without Xcode.
+
+- [ ] `OpenDockScripting`: JavaScriptCore runtime, one context per widget
+- [ ] Host bridge: `fetch` with domain allowlist, `settings`, `storage`, actions
+- [ ] View tree protocol and SwiftUI renderer for the full component set
+- [ ] Refresh scheduler with clamping, batching, pause, and backoff
+- [ ] Manifest schema and validator
+- [ ] Load widgets from `~/Library/Application Support/OpenDock/Widgets`
+- [ ] `@opendock/react`: components, hooks, reconciler
+- [ ] `opendock` CLI: `init`, `dev` with live reload, `build`
+- [ ] Example widgets in `Registry/`: GitHub stars, weather, crypto price
+- [ ] Settings sheet generated from manifest schema, secrets in Keychain
+
+## Phase 3: Marketplace
+
+Goal: discover, install, and update community widgets from inside the app.
+
+- [ ] `opendock-registry` repo with `index.json`, CI validation, zip + SHA-256 publishing
+- [ ] `OpenDockMarketplace`: registry client, installer, hash verification, updates
+- [ ] Marketplace window: browse, search, categories, screenshots, install
+- [ ] Permission sheet on install listing domains and settings
+- [ ] Third-party registries by URL
+- [ ] Update check on launch
+
+## Phase 4: More native widgets and polish
+
+- [ ] Now Playing with artwork and transport controls
+- [ ] Weather (WeatherKit), Calendar, Reminders, Mail unread
+- [ ] Battery, memory, network throughput, disk
+- [ ] Wi‑Fi, Bluetooth, Do Not Disturb toggles
+- [ ] Timer, stopwatch, Pomodoro
+- [ ] Multiple docks and edge placement
+- [ ] Keyboard shortcuts, accessibility pass, reduced transparency support
+- [ ] Notarized release pipeline and Sparkle updates
+
+## Later ideas
+
+- Canvas component for custom drawing in script widgets
+- Web view escape hatch for widgets that need HTML
+- Optional registry API for ratings and featured lists
+- iCloud sync of dock layout
