@@ -19,7 +19,8 @@ OpenDock/                 App target (file-system synchronized group)
                           DockView (glass bar + tiles), DockLayoutStore (persisted layout)
   Onboarding/             First-run window and steps
   Services/               PermissionCenter, LaunchAtLogin, SystemDockManager
-  Settings/               SettingsWindowController + SwiftUI SettingsView
+  Settings/               SettingsWindowController (toolbar-style NSTabViewController)
+                          + SwiftUI panes in SettingsPanes.swift
   Resources/              Assets
 Packages/
   OpenDockKit/            Public widget SDK: DockWidget, WidgetDescriptor, WidgetSize,
