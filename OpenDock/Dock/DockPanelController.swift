@@ -149,20 +149,15 @@ final class DockPanelController {
         popover.behavior = .transient
         cancelHide()
 
-        // A non-activating panel must explicitly lend key focus to its popover.
-        // Otherwise the first control click can merely focus the window, and
-        // prominent buttons are drawn in their inactive (gray) appearance.
-        panel.becomesKeyOnlyIfNeeded = false
-        panel.makeKey()
+        // The popover owns keyboard focus. Making the dock itself key changes
+        // the active appearance of every glass tile behind the popover.
         window.makeKey()
     }
 
     private func popoverDidClose(_ popover: NSPopover) {
         guard openPopovers.removeValue(forKey: ObjectIdentifier(popover)) != nil else { return }
         guard openPopovers.isEmpty else { return }
-        panel.becomesKeyOnlyIfNeeded = !layout.isEditing
         if !layout.isEditing {
-            panel.resignKey()
             // Escape/programmatic dismissal returns focus. Outside clicks must
             // go to the clicked app/window without reactivating the previous app.
             if !popoverDismissedByOutsideClick,
@@ -320,7 +315,7 @@ final class DockPanelController {
             // While editing, any click on the panel makes it key again (without
             // activating the app) so OK keeps its accent color and Return and Escape
             // reach the buttons. Outside edit mode, clicking a widget leaves focus alone.
-            self.panel.becomesKeyOnlyIfNeeded = !editing && self.openPopovers.isEmpty
+            self.panel.becomesKeyOnlyIfNeeded = !editing
             if editing {
                 self.appBeforeEditing = NSWorkspace.shared.frontmostApplication
                 // SwiftUI adds the tray on the next update. Wait for it, measure,
