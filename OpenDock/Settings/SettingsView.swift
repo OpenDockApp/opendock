@@ -6,6 +6,9 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
+            Tab("General", systemImage: "gearshape") {
+                GeneralSettingsView()
+            }
             Tab("Widgets", systemImage: "square.grid.2x2") {
                 WidgetLibraryView()
             }
@@ -62,6 +65,18 @@ private struct WidgetLibraryView: View {
                 Toggle("Edit mode", isOn: $layout.isEditing)
                 Button("Reset to defaults") { layout.reset() }
             }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct GeneralSettingsView: View {
+    @Environment(DockPanelController.self) private var controller
+
+    var body: some View {
+        @Bindable var controller = controller
+        Form {
+            Toggle("Automatically hide and show the dock", isOn: $controller.autoHide)
         }
         .formStyle(.grouped)
     }

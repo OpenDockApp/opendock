@@ -2,42 +2,103 @@ import AppKit
 import SwiftUI
 import OpenDockKit
 
-/// Owns the panel, hosts the SwiftUI dock, and keeps the panel sized and anchored
-/// to the bottom center of the main screen.
+/// Owns the panel, hosts the SwiftUI dock, anchors it to the bottom center of the
+/// primary screen, and drives auto-hide.
 @Observable
 final class DockPanelController {
     let layout = DockLayoutStore()
     let theme = DockTheme.standard
+
+    /// The user has the dock turned on (menu bar Show/Hide).
     private(set) var isVisible = false
+
+    /// Slide the dock off screen until the pointer touches the bottom edge.
+    var autoHide: Bool = UserDefaults.standard.object(forKey: Keys.autoHide) as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(autoHide, forKey: Keys.autoHide)
+            autoHide ? scheduleHide(after: Timing.hideDelay) : reveal()
+        }
+    }
+
+    /// Whether the dock is currently slid in (only meaningful when auto-hide is on).
+    private(set) var isRevealed = true
 
     private let panel = DockPanel()
     private var hostingView: NSHostingView<DockView>?
+    private var contentSize: CGSize = .zero
+    private var hideTask: Task<Void, Never>?
+    private var isMenuTracking = false
+    private var mouseMonitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
+    private var tracker: HoverTracker?
 
-    init() {
-        let view = DockView(controller: self)
-        let host = NSHostingView(rootView: view)
-        host.sizingOptions = [.preferredContentSize]
-        panel.contentView = host
-        hostingView = host
-
-        observers.append(NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.reposition() }
-        })
+    private enum Keys {
+        static let autoHide = "dock.autoHide"
     }
 
+    private enum Timing {
+        static let slide: TimeInterval = 0.25
+        static let hideDelay: Duration = .milliseconds(400)
+        static let revealGrace: Duration = .milliseconds(1200)
+    }
+
+    /// Distance from the screen bottom the resting dock floats at.
+    private let bottomInset: CGFloat = 4
+    /// How close to the bottom edge the pointer must be to reveal the dock.
+    private let revealZone: CGFloat = 2
+
+    init() {
+        let host = NSHostingView(rootView: DockView(controller: self))
+        host.sizingOptions = [.preferredContentSize]
+        panel.contentView = host
+        panel.acceptsMouseMovedEvents = true
+        hostingView = host
+
+        tracker = HoverTracker(view: host) { [weak self] inside in
+            guard let self else { return }
+            inside ? self.cancelHide() : self.scheduleHide(after: Timing.hideDelay)
+        }
+
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.applyFrame(animated: false) }
+        })
+        observers.append(center.addObserver(
+            forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.isMenuTracking = true
+                self?.cancelHide()
+            }
+        })
+        observers.append(center.addObserver(
+            forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.isMenuTracking = false
+                self?.scheduleHide(after: Timing.hideDelay)
+            }
+        })
+
+        installMouseMonitors()
+        observeEditing()
+    }
+
+    // MARK: Visibility
+
     func show() {
-        reposition()
-        panel.orderFrontRegardless()
         isVisible = true
+        isRevealed = !autoHide
+        applyFrame(animated: false)
+        panel.orderFrontRegardless()
     }
 
     func hide() {
-        panel.orderOut(nil)
         isVisible = false
+        cancelHide()
+        panel.orderOut(nil)
     }
 
     func toggleVisibility() {
@@ -47,17 +108,160 @@ final class DockPanelController {
     /// Called by the dock view whenever its content size changes.
     func contentSizeChanged(_ size: CGSize) {
         guard size.width > 0, size.height > 0 else { return }
-        reposition(contentSize: size)
+        contentSize = size
+        applyFrame(animated: false)
     }
 
-    private func reposition(contentSize: CGSize? = nil) {
-        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
-        let size = contentSize ?? hostingView?.fittingSize ?? panel.frame.size
-        let visible = screen.visibleFrame
-        let origin = CGPoint(
-            x: visible.midX - size.width / 2,
-            y: screen.frame.minY + 14
-        )
-        panel.setFrame(CGRect(origin: origin, size: size), display: true, animate: false)
+    // MARK: Auto-hide
+
+    private func reveal() {
+        cancelHide()
+        guard isVisible, !isRevealed else { return }
+        isRevealed = true
+        applyFrame(animated: true)
+        // If the pointer never moves onto the dock, tuck it away again.
+        scheduleHide(after: Timing.revealGrace)
     }
+
+    private func conceal() {
+        guard autoHide, isRevealed else { return }
+        isRevealed = false
+        applyFrame(animated: true)
+    }
+
+    private func cancelHide() {
+        hideTask?.cancel()
+        hideTask = nil
+    }
+
+    private func scheduleHide(after delay: Duration) {
+        guard autoHide, isRevealed else { return }
+        cancelHide()
+        hideTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self else { return }
+            if self.shouldStayRevealed {
+                self.scheduleHide(after: Timing.hideDelay)
+            } else {
+                self.conceal()
+            }
+        }
+    }
+
+    private var shouldStayRevealed: Bool {
+        layout.isEditing
+            || isMenuTracking
+            || NSEvent.pressedMouseButtons != 0
+            || panel.frame.contains(NSEvent.mouseLocation)
+    }
+
+    private func installMouseMonitors() {
+        let handler: (NSEvent) -> Void = { [weak self] _ in
+            MainActor.assumeIsolated { self?.mouseMoved(to: NSEvent.mouseLocation) }
+        }
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged]
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: handler) {
+            mouseMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { event in
+            handler(event)
+            return event
+        }) {
+            mouseMonitors.append(local)
+        }
+    }
+
+    private func mouseMoved(to point: CGPoint) {
+        guard autoHide, isVisible, !isRevealed, let screen = dockScreen else { return }
+        let rest = restingFrame(on: screen)
+        let atBottomEdge = point.y <= screen.frame.minY + revealZone
+        let underDock = point.x >= rest.minX && point.x <= rest.maxX
+        if atBottomEdge && underDock {
+            reveal()
+        }
+    }
+
+    /// Keep the dock out while editing, tuck it away when editing ends.
+    private func observeEditing() {
+        withObservationTracking {
+            _ = layout.isEditing
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                if self.layout.isEditing {
+                    self.reveal()
+                } else {
+                    self.scheduleHide(after: Timing.hideDelay)
+                }
+                self.observeEditing()
+            }
+        }
+    }
+
+    // MARK: Geometry
+
+    /// The dock lives on the screen with the menu bar, like the system Dock's default.
+    private var dockScreen: NSScreen? {
+        NSScreen.screens.first
+    }
+
+    private var currentSize: CGSize {
+        contentSize == .zero ? (hostingView?.fittingSize ?? panel.frame.size) : contentSize
+    }
+
+    private func restingFrame(on screen: NSScreen) -> CGRect {
+        let size = currentSize
+        return CGRect(
+            x: screen.frame.midX - size.width / 2,
+            y: screen.frame.minY + bottomInset,
+            width: size.width,
+            height: size.height
+        )
+    }
+
+    private func hiddenFrame(on screen: NSScreen) -> CGRect {
+        var frame = restingFrame(on: screen)
+        frame.origin.y = screen.frame.minY - frame.height
+        return frame
+    }
+
+    private func applyFrame(animated: Bool) {
+        guard let screen = dockScreen else { return }
+        let shown = !autoHide || isRevealed
+        let target = shown ? restingFrame(on: screen) : hiddenFrame(on: screen)
+        let alpha: CGFloat = shown ? 1 : 0
+
+        guard animated else {
+            panel.setFrame(target, display: true)
+            panel.alphaValue = alpha
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = Timing.slide
+            context.timingFunction = CAMediaTimingFunction(name: shown ? .easeOut : .easeIn)
+            panel.animator().setFrame(target, display: true)
+            panel.animator().alphaValue = alpha
+        }
+    }
+}
+
+/// Reports pointer enter/exit on a view even when the app is not active.
+private final class HoverTracker: NSResponder {
+    private let onChange: (Bool) -> Void
+
+    init(view: NSView, onChange: @escaping (Bool) -> Void) {
+        self.onChange = onChange
+        super.init()
+        view.addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        ))
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func mouseEntered(with event: NSEvent) { onChange(true) }
+    override func mouseExited(with event: NSEvent) { onChange(false) }
 }

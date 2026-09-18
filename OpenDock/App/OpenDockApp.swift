@@ -18,6 +18,7 @@ struct OpenDockApp: App {
         Settings {
             SettingsView()
                 .environment(delegate.dockController.layout)
+                .environment(delegate.dockController)
         }
     }
 }
@@ -31,6 +32,11 @@ private struct MenuBarMenu: View {
             controller.toggleVisibility()
         }
         .keyboardShortcut("d", modifiers: [.command, .option])
+
+        Toggle("Automatically Hide Dock", isOn: Binding(
+            get: { controller.autoHide },
+            set: { controller.autoHide = $0 }
+        ))
 
         Button(controller.layout.isEditing ? "Done Editing" : "Edit Widgets") {
             controller.layout.isEditing.toggle()
