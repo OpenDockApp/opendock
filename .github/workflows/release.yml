@@ -12,7 +12,6 @@ jobs:
     runs-on: macos-26
     env:
       TAG: ${{ github.ref_name }}
-      KEYCHAIN_PATH: ${{ runner.temp }}/app-signing.keychain-db
     steps:
       - uses: actions/checkout@v4
 
@@ -22,6 +21,9 @@ jobs:
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
+          # The runner context isn't available in job-level env, so export it here.
+          echo "KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db" >> "$GITHUB_ENV"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
           CERT="$RUNNER_TEMP/build_certificate.p12"
           printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 -D -o "$CERT"
 
