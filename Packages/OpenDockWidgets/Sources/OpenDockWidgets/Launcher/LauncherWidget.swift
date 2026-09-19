@@ -10,7 +10,7 @@ struct LauncherWidget: DockWidget {
         summary: "A grid of your favorite apps. Drop apps on it to add them.",
         symbol: "square.grid.2x2",
         category: .utilities,
-        supportedSizes: [.small, .medium, .wide, .large]
+        supportedSizes: [.small, .medium, .wide]
     )
 
     func body(context: WidgetContext) -> some View {
