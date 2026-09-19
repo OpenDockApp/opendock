@@ -172,11 +172,22 @@ struct AboutSettingsPane: View {
             Text(version)
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            if !UpdaterService.isAvailable {
+                Label("Debug Build", systemImage: "hammer.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(.orange.opacity(0.15), in: Capsule())
+                    .help(Bundle.main.bundleIdentifier ?? "")
+            }
             Text("An open-source widget dock for macOS.")
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
-            Button("Check for Updates…", action: checkForUpdates)
-                .padding(.top, 4)
+            if UpdaterService.isAvailable {
+                Button("Check for Updates…", action: checkForUpdates)
+                    .padding(.top, 4)
+            }
             Link("github.com/OpenDockApp/opendock", destination: URL(string: "https://github.com/OpenDockApp/opendock")!)
                 .padding(.top, 4)
         }
