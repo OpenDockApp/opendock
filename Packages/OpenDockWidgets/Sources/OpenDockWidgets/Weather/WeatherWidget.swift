@@ -38,7 +38,7 @@ private struct WeatherView: View {
                 Spacer(minLength: 0)
             }.padding(theme.contentPadding).frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
         }.buttonStyle(.plain)
-        .popover(isPresented: $expanded) {
+        .widgetPopover(isPresented: $expanded) {
             WidgetDetails(title: place?.name ?? "Weather", symbol: weather?.symbol ?? "cloud.sun") {
                 if let weather {
                     HStack {

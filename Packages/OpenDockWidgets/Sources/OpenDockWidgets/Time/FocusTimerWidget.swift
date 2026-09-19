@@ -58,7 +58,7 @@ private struct FocusTimerView: View {
                 if loaded && session.finishIfNeeded(at: date) { save() }
             }
         }
-        .popover(isPresented: $showDetails) {
+        .widgetPopover(isPresented: $showDetails) {
             WidgetDetails(title: "Make room for focus", symbol: "scope") {
                 Text(finished ? "Session complete. Take a moment before your next one." : "One thing at a time. Everything else can wait.")
                     .foregroundStyle(.secondary)

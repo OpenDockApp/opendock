@@ -49,7 +49,7 @@ private struct NowPlayingView: View {
                     .disabled(busy).accessibilityLabel(snapshot?.playing == true ? "Pause" : "Play")
             }
         }.padding(theme.contentPadding)
-        .popover(isPresented: $expanded) {
+        .widgetPopover(isPresented: $expanded) {
             WidgetDetails(title: "Now Playing", symbol: "music.note") {
                 Picker("Player", selection: $source) {
                     ForEach(MediaSource.allCases, id: \.self) { Text($0.name).tag($0) }

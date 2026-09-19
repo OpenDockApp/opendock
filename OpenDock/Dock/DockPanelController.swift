@@ -44,6 +44,9 @@ final class DockPanelController {
     private var hideTask: Task<Void, Never>?
     private var isMenuTracking = false
     private var openPopovers: [ObjectIdentifier: NSPopover] = [:]
+    /// Widgets that asked for a popover. Known before AppKit shows it, which can be
+    /// a moment later (for example after a context menu fades out).
+    private var presentingWidgets: Set<UUID> = []
     private var appBeforePopover: NSRunningApplication?
     private var popoverDismissedByOutsideClick = false
     private var mouseMonitors: [Any] = []
@@ -170,6 +173,16 @@ final class DockPanelController {
         scheduleHide(after: Timing.hideDelay)
     }
 
+    /// Reported by `widgetPopover` as soon as a widget opens or closes one.
+    func setWidgetPresenting(_ id: UUID, _ presenting: Bool) {
+        if presenting {
+            presentingWidgets.insert(id)
+            cancelHide()
+        } else {
+            presentingWidgets.remove(id)
+        }
+    }
+
     private func closeWidgetPopovers() {
         for popover in Array(openPopovers.values) { popover.performClose(nil) }
     }
@@ -278,6 +291,7 @@ final class DockPanelController {
         layout.isEditing
             || isMenuTracking
             || !openPopovers.isEmpty
+            || !presentingWidgets.isEmpty
             || NSEvent.pressedMouseButtons != 0
             || panel.frame.contains(NSEvent.mouseLocation)
     }

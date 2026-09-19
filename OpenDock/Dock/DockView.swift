@@ -23,6 +23,9 @@ struct DockView: View {
         }
         .padding(Self.shadowMargin)
         .environment(\.dockTheme, theme)
+        .environment(\.widgetPresentations, WidgetPresentations { [controller] id, presenting in
+            controller.setWidgetPresenting(id, presenting)
+        })
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
             controller.contentSizeChanged(size)
         }

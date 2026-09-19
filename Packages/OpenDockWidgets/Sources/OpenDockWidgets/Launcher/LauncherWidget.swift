@@ -74,7 +74,7 @@ private struct LauncherView: View {
         .dropDestination(for: URL.self) { urls, _ in
             addDropped(urls)
         } isTargeted: { isDropTarget = $0 }
-        .popover(isPresented: $showingEditor) {
+        .widgetPopover(isPresented: $showingEditor) {
             LauncherEditor(
                 bundleIDs: Binding(get: { bundleIDs }, set: { update($0) }),
                 capacity: capacity,

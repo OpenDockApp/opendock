@@ -37,7 +37,7 @@ private struct NextMeetingView: View {
                 }.padding(theme.contentPadding).frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
             }.buttonStyle(.plain)
         }
-        .popover(isPresented: $expanded) {
+        .widgetPopover(isPresented: $expanded) {
             WidgetDetails(title: "Next Meeting", symbol: "calendar.badge.clock") {
                 if service.access != .granted {
                     Text("Show timed events from the calendars on this Mac. All-day and declined events are excluded.").foregroundStyle(.secondary)

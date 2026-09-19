@@ -64,6 +64,9 @@ No xcodegen or tuist. Use a scratch `-derivedDataPath` when building from a shel
   a stable reverse-DNS `id` (`dev.opendock.<name>`), register it in `registerAll`.
   Keep widget state in an inner view with `@State`; the widget struct is recreated
   freely. Reach the system only through `WidgetContext.services`.
+- **Widget popovers use `widgetPopover(isPresented:)`**, not `.popover`. It tells the
+  dock right away, so the dock does not auto-hide before SwiftUI shows the popover
+  (which lags, e.g. when opened from a context menu).
 - **Persistence:** app settings go in `UserDefaults` with namespaced keys
   (`dock.autoHide`, `dock.bottomGap`, `systemDock.snapshot`, `onboarding.completed`).
   The layout is JSON in Application Support under a folder named by bundle ID.

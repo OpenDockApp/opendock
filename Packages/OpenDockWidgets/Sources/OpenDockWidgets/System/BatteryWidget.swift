@@ -39,7 +39,7 @@ private struct BatteryView: View {
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
         }.buttonStyle(.plain)
-        .popover(isPresented: $expanded) {
+        .widgetPopover(isPresented: $expanded) {
             WidgetDetails(title: "Battery", symbol: symbol) {
                 if let percentage = service.percentage {
                     Text("\(percentage)%").font(theme.heroFont).foregroundStyle(tint)
