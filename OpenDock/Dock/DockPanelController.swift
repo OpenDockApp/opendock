@@ -39,6 +39,7 @@ final class DockPanelController {
     private(set) var isLive = true
 
     private let panel = DockPanel()
+    private let edgeTrigger = EdgeTrigger()
     private var hostingView: NSHostingView<DockView>?
     private var contentSize: CGSize = .zero
     private var hideTask: Task<Void, Never>?
@@ -76,7 +77,6 @@ final class DockPanelController {
         let host = DockHostingView(rootView: DockView(controller: self))
         host.sizingOptions = [.preferredContentSize]
         panel.contentView = host
-        panel.acceptsMouseMovedEvents = true
         hostingView = host
 
         tracker = HoverTracker(view: host) { [weak self] inside in
@@ -126,7 +126,7 @@ final class DockPanelController {
         })
 
         installPopoverDismissalMonitors()
-        installMouseMonitors()
+        edgeTrigger.onEnter = { [weak self] in self?.reveal() }
         observeEditing()
     }
 
@@ -227,6 +227,7 @@ final class DockPanelController {
         isLive = false
         cancelHide()
         panel.orderOut(nil)
+        edgeTrigger.orderOut(nil)
     }
 
     func toggleVisibility() {
@@ -296,32 +297,6 @@ final class DockPanelController {
             || panel.frame.contains(NSEvent.mouseLocation)
     }
 
-    private func installMouseMonitors() {
-        let handler: (NSEvent) -> Void = { [weak self] _ in
-            MainActor.assumeIsolated { self?.mouseMoved(to: NSEvent.mouseLocation) }
-        }
-        let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged]
-        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: handler) {
-            mouseMonitors.append(global)
-        }
-        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { event in
-            handler(event)
-            return event
-        }) {
-            mouseMonitors.append(local)
-        }
-    }
-
-    private func mouseMoved(to point: CGPoint) {
-        guard autoHide, isVisible, !isRevealed, let screen = dockScreen else { return }
-        let rest = restingFrame(on: screen)
-        let atBottomEdge = point.y <= screen.frame.minY + revealZone
-        let underDock = point.x >= rest.minX && point.x <= rest.maxX
-        if atBottomEdge && underDock {
-            reveal()
-        }
-    }
-
     /// Keep the dock out while editing, tuck it away when editing ends.
     private func observeEditing() {
         layout.onEditingChanged = { [weak self] editing in
@@ -380,11 +355,26 @@ final class DockPanelController {
         return frame
     }
 
+    /// The hidden dock comes back when the pointer touches the bottom edge below it.
+    private func updateEdgeTrigger(on screen: NSScreen, armed: Bool) {
+        guard armed else {
+            edgeTrigger.orderOut(nil)
+            return
+        }
+        let rest = restingFrame(on: screen)
+        edgeTrigger.setFrame(
+            CGRect(x: rest.minX, y: screen.frame.minY, width: rest.width, height: revealZone),
+            display: false
+        )
+        edgeTrigger.orderFrontRegardless()
+    }
+
     private func applyFrame(animated: Bool) {
         guard let screen = dockScreen else { return }
         let shown = !autoHide || isRevealed
         let target = shown ? restingFrame(on: screen) : hiddenFrame(on: screen)
         let alpha: CGFloat = shown ? 1 : 0
+        updateEdgeTrigger(on: screen, armed: isVisible && !shown)
 
         // Go live before sliding in; stop only after sliding out finishes.
         if shown { isLive = isVisible }
@@ -431,4 +421,60 @@ private final class HoverTracker: NSResponder {
 
     override func mouseEntered(with event: NSEvent) { onChange(true) }
     override func mouseExited(with event: NSEvent) { onChange(false) }
+}
+
+/// Invisible strip along the bottom screen edge that reveals the hidden dock.
+/// A tracking area instead of a global mouse-moved monitor: that monitor routes
+/// every pointer move on the system through the app and made its menus lag.
+private final class EdgeTrigger: NSPanel {
+    var onEnter: () -> Void = {}
+
+    init() {
+        super.init(
+            contentRect: .zero,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        level = .floating
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+        isOpaque = false
+        // A fully clear window lets the pointer through, so its tracking area never fires.
+        backgroundColor = NSColor(white: 0, alpha: 0.01)
+        hasShadow = false
+        hidesOnDeactivate = false
+        animationBehavior = .none
+
+        let view = TriggerView()
+        view.onEnter = { [weak self] in self?.onEnter() }
+        contentView = view
+        view.addTrackingArea(NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect, .enabledDuringMouseDrag],
+            owner: view,
+            userInfo: nil
+        ))
+    }
+
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
+
+private final class TriggerView: NSView {
+    var onEnter: () -> Void = {}
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        // Dragging something to the edge reveals the dock too.
+        registerForDraggedTypes([.string, .fileURL, .URL])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func mouseEntered(with event: NSEvent) { onEnter() }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        onEnter()
+        return []
+    }
 }

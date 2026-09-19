@@ -85,8 +85,11 @@ No xcodegen or tuist. Use a scratch `-derivedDataPath` when building from a shel
   move back to a SwiftUI `App`/`MenuBarExtra`. Windows (settings, onboarding) are
   `NSWindow`s hosting SwiftUI; there is no SwiftUI `Settings` scene.
 - The dock panel must stay a non-activating borderless `NSPanel` so it never steals
-  focus. Hover uses an `NSTrackingArea` with `.activeAlways`; reveal uses global and
-  local mouse-moved monitors (no Accessibility permission needed).
+  focus. Hover uses an `NSTrackingArea` with `.activeAlways`; reveal uses the same
+  on `EdgeTrigger`, a 2 pt strip at the bottom edge shown while the dock is hidden.
+- Never add a global `.mouseMoved` event monitor. It routes every pointer move on the
+  system through the app and makes all of its menus lag on hover, with an idle main
+  thread, so profiling does not show it.
 - The panel is offset down by `DockView.shadowMargin` so the shadow padding does not
   add to the visible bottom gap. Keep those two in sync.
 - The sandbox cannot disable the system Dock. `SystemDockManager` moves it to a side
