@@ -89,15 +89,16 @@ private struct ShelfView: View {
             Button("Open Shelf…") { showingList = true }
             Button("Add Files…") { addFiles() }
             Divider()
-            Button("Clear Shelf", role: .destructive) { update([]) }
+            Button("Clear Shelf", role: .destructive) { remove(items) }
                 .disabled(items.isEmpty)
         }
         .widgetPopover(isPresented: $showingList) {
-            ShelfList(
+            ShelfGrid(
                 shelf: shelf,
                 entries: entries,
                 remove: remove,
-                clear: { update([]) },
+                add: { update([$0] + items) },
+                clear: { remove(items) },
                 addFiles: {
                     showingList = false
                     addFiles()
@@ -140,7 +141,7 @@ private struct ShelfView: View {
         .help(entry.isAvailable ? entry.item.name : "\(entry.item.name) (missing)")
         .modifier(ShelfDraggable(url: entry.url))
         .contextMenu {
-            shelfItemMenu(entry, remove: { remove(entry.item) })
+            shelfItemMenu(entry) { remove([entry.item]) }
             Divider()
             Button("Open Shelf…") { showingList = true }
         }
@@ -195,9 +196,13 @@ private struct ShelfView: View {
         context.services.storage.set(newItems, for: Self.storageKey, instance: context.instanceID)
     }
 
-    private func remove(_ item: ShelfItem) {
-        shelf.forget(item)
-        update(items.filter { $0.id != item.id })
+    private func remove(_ removed: [ShelfItem]) {
+        let ids = Set(removed.map(\.id))
+        for item in removed {
+            shelf.deleteIfGenerated(item)
+            shelf.forget(item)
+        }
+        update(items.filter { !ids.contains($0.id) })
     }
 
     /// Newest first, so the last thing dropped is the easiest to grab.
@@ -241,6 +246,7 @@ struct ShelfDraggable: ViewModifier {
 func shelfItemMenu(_ entry: ShelfEntry, remove: @escaping () -> Void) -> some View {
     if let url = entry.url {
         Button("Open") { NSWorkspace.shared.open(url) }
+        ShareLink(item: url)
         if !entry.item.isLink {
             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         }

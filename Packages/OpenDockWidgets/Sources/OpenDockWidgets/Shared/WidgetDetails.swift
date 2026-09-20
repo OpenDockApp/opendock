@@ -6,6 +6,8 @@ struct WidgetDetails<Content: View>: View {
     @Environment(\.dockTheme) private var theme
     let title: String
     let symbol: String
+    /// Reference width, scaled by the theme. Wider for grids of content.
+    var width: CGFloat = 280
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -15,6 +17,6 @@ struct WidgetDetails<Content: View>: View {
         }
         .font(theme.titleFont)
         .padding(theme.scaled(18))
-        .frame(width: theme.scaled(280))
+        .frame(width: theme.scaled(width))
     }
 }

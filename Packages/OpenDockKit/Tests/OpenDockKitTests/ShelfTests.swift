@@ -61,6 +61,57 @@ import Testing
         #expect(shelf.refreshing([item]) == nil)
     }
 
+    @Test func archivingProducesAZipOnTheShelf() async throws {
+        let first = try temporaryFile(named: "one.txt")
+        let second = try temporaryFile(named: "two.txt")
+        let archives = URL(filePath: NSTemporaryDirectory(), directoryHint: .isDirectory)
+            .appending(path: "shelf-archives-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer {
+            for url in [first, second].map({ $0.deletingLastPathComponent() }) + [archives] {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+
+        let shelf = ShelfService(archiveFolder: archives)
+        let items = try [first, second].map { try #require(shelf.item(for: $0)) }
+        let archive = try await shelf.archive(items, named: "Shelf Items")
+
+        let url = try #require(shelf.resolve(archive)?.url)
+        #expect(url.pathExtension == "zip")
+        #expect(archive.name == "Shelf Items.zip")
+        let size = try #require(try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int)
+        #expect(size > 0)
+    }
+
+    @Test func archivingLinksAloneFails() async throws {
+        let shelf = ShelfService()
+        let link = try #require(shelf.item(for: URL(string: "https://opendock.dev")!))
+        await #expect(throws: ShelfService.ShelfError.self) {
+            _ = try await shelf.archive([link], named: "Links")
+        }
+    }
+
+    @Test func generatedArchivesAreDeletedButDroppedFilesAreNot() async throws {
+        let file = try temporaryFile(named: "keep.txt")
+        let archives = URL(filePath: NSTemporaryDirectory(), directoryHint: .isDirectory)
+            .appending(path: "shelf-archives-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer {
+            try? FileManager.default.removeItem(at: file.deletingLastPathComponent())
+            try? FileManager.default.removeItem(at: archives)
+        }
+
+        let shelf = ShelfService(archiveFolder: archives)
+        let item = try #require(shelf.item(for: file))
+        let archive = try await shelf.archive([item], named: "keep")
+        let archiveURL = try #require(shelf.resolve(archive)?.url)
+
+        shelf.deleteIfGenerated(archive)
+        #expect(!FileManager.default.fileExists(atPath: archiveURL.path))
+
+        shelf.deleteIfGenerated(item)
+        #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
     @Test func itemsSurviveEncoding() throws {
         let item = ShelfItem(name: "Docs", kind: .link(URL(string: "https://opendock.dev")!))
         let data = try JSONEncoder().encode([item])

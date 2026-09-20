@@ -49,8 +49,13 @@ public final class ShelfService {
     private var resolved: [UUID: URL] = [:]
     private var accessed: Set<URL> = []
     private var thumbnails: [UUID: NSImage] = [:]
+    private let archiveFolderOverride: URL?
 
-    public init() {}
+    /// `archiveFolder` names where zips go. Tests pass their own; the app uses
+    /// its Application Support folder.
+    public init(archiveFolder: URL? = nil) {
+        archiveFolderOverride = archiveFolder
+    }
 
     deinit {
         for url in accessed { url.stopAccessingSecurityScopedResource() }
@@ -149,11 +154,108 @@ public final class ShelfService {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
-    public func copyToPasteboard(_ item: ShelfItem) {
-        guard let url = resolve(item)?.url else { return }
+    /// Usable URLs for a selection, in order, skipping anything missing.
+    public func urls(for items: [ShelfItem]) -> [URL] {
+        items.compactMap { item in
+            guard let resolution = resolve(item), !resolution.isMissing else { return nil }
+            return resolution.url
+        }
+    }
+
+    public func copyToPasteboard(_ items: [ShelfItem]) {
+        let urls = urls(for: items)
+        guard !urls.isEmpty else { return }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.writeObjects([url as NSURL])
+        pasteboard.writeObjects(urls.map { $0 as NSURL })
+    }
+
+    // MARK: Archiving
+
+    public enum ShelfError: Error {
+        case nothingToArchive
+        case archiveFailed
+    }
+
+    /// Where generated archives live. The sandbox grants read-only access to the
+    /// files a user drops, so a zip cannot be written beside them; it goes in the
+    /// app container and lands back on the shelf, ready to drag out or share.
+    public var archiveFolder: URL {
+        if let override = archiveFolderOverride { return override }
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return support
+            .appending(path: Bundle.main.bundleIdentifier ?? "OpenDock", directoryHint: .isDirectory)
+            .appending(path: "Archives", directoryHint: .isDirectory)
+    }
+
+    /// Zips the files in a selection and returns a shelf item for the archive.
+    public func archive(_ items: [ShelfItem], named name: String) async throws -> ShelfItem {
+        let sources = urls(for: items).filter(\.isFileURL)
+        guard !sources.isEmpty else { throw ShelfError.nothingToArchive }
+        let zip = try await Self.makeArchive(of: sources, named: name, in: archiveFolder)
+        guard let item = item(for: zip) else { throw ShelfError.archiveFailed }
+        return item
+    }
+
+    /// Copies everything into one staging folder and lets the file coordinator zip
+    /// it, which is the only archiver that ships with the system.
+    private nonisolated static func makeArchive(of sources: [URL], named name: String, in folder: URL) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) {
+            let manager = FileManager.default
+            try manager.createDirectory(at: folder, withIntermediateDirectories: true)
+
+            let root = manager.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+            let staging = root.appending(path: name, directoryHint: .isDirectory)
+            try manager.createDirectory(at: staging, withIntermediateDirectories: true)
+            defer { try? manager.removeItem(at: root) }
+            for source in sources {
+                try manager.copyItem(at: source, to: unique(staging.appending(path: source.lastPathComponent)))
+            }
+
+            var coordinationError: NSError?
+            var copyError: (any Error)?
+            var archive: URL?
+            NSFileCoordinator().coordinate(
+                readingItemAt: staging, options: [.forUploading], error: &coordinationError
+            ) { zipped in
+                let destination = unique(folder.appending(path: "\(name).zip"))
+                do {
+                    try manager.copyItem(at: zipped, to: destination)
+                    archive = destination
+                } catch {
+                    copyError = error
+                }
+            }
+            if let coordinationError { throw coordinationError }
+            if let copyError { throw copyError }
+            guard let archive else { throw ShelfError.archiveFailed }
+            return archive
+        }.value
+    }
+
+    /// `name`, `name 2`, `name 3`… so nothing is ever overwritten.
+    private nonisolated static func unique(_ url: URL) -> URL {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: url.path) else { return url }
+        let base = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+        let folder = url.deletingLastPathComponent()
+        for suffix in 2...999 {
+            var candidate = folder.appending(path: "\(base) \(suffix)")
+            if !ext.isEmpty { candidate.appendPathExtension(ext) }
+            if !manager.fileExists(atPath: candidate.path) { return candidate }
+        }
+        return url
+    }
+
+    /// Throws away an archive OpenDock made. Files the user dropped are left alone.
+    public func deleteIfGenerated(_ item: ShelfItem) {
+        // Resolved bookmarks come back with symlinks expanded (/private/var…),
+        // so compare the real paths on both sides.
+        let folder = archiveFolder.resolvingSymlinksInPath().path
+        guard case .file = item.kind, let url = resolve(item)?.url,
+              url.resolvingSymlinksInPath().path.hasPrefix(folder) else { return }
+        try? FileManager.default.removeItem(at: url)
     }
 
     // MARK: Pictures
