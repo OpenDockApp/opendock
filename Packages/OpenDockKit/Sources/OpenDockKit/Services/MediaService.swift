@@ -1,135 +1,148 @@
 import AppKit
 import Foundation
-import Carbon
+import Observation
 
-public enum MediaSource: String, CaseIterable, Codable, Sendable {
-    case music, spotify
-    public nonisolated var name: String { self == .music ? "Music" : "Spotify" }
-    public nonisolated var bundleID: String { self == .music ? "com.apple.Music" : "com.spotify.client" }
+public struct MediaSnapshot: Equatable, Sendable {
+    public var title: String
+    public var artist: String
+    public var album: String
+    public var playing: Bool
+    /// The app that owns the session, such as Music, Spotify or a browser.
+    public var appName: String?
+    public var bundleID: String?
 }
 
-public struct MediaSnapshot: Sendable {
-    public enum State: Sendable { case closed, needsPermission, denied, idle, track, unavailable }
-    public let state: State
-    public var title = ""
-    public var artist = ""
-    public var playing = false
-    public var artwork: Data?
-}
-
-/// All system communication is owned by the host, not the widget's view.
+/// Follows whatever app macOS reports as Now Playing, the same source as Control Center.
+///
+/// MediaRemote only answers Apple-signed processes, so the host runs the bundled
+/// `libMediaRemoteBridge.dylib` inside `/usr/bin/perl` and reads its JSON lines.
+@Observable
 public final class MediaService {
     public static let shared = MediaService()
-    public enum Command: String, Sendable { case toggle = "playpause", next = "next track", previous = "previous track" }
-    private let worker = MediaWorker()
+    public enum Command: String, Sendable { case toggle, next, previous }
+
+    /// The current session, or nil when nothing is playing.
+    public private(set) var nowPlaying: MediaSnapshot?
+    /// False once the bridge could not be started, so the widget can say so.
+    public private(set) var available = true
+
+    private var process: Process?
+    private var input: FileHandle?
+    private var buffer = Data()
+    private var failures = 0
+    private var pendingClear: DispatchWorkItem?
+
+    /// Loads the bridge, then calls its entry point once loading has finished.
+    private static let loader = """
+        my $lib = DynaLoader::dl_load_file($ARGV[0], 0) or die DynaLoader::dl_error();
+        my $run = DynaLoader::dl_find_symbol($lib, "OpenDockMediaBridgeRun") or die DynaLoader::dl_error();
+        DynaLoader::dl_install_xsub("main::run", $run);
+        run();
+        """
+
     public init() {}
 
-    public enum Permission: Sendable { case notDetermined, granted, denied }
-    public func permission(for source: MediaSource) async -> Permission {
-        let status = await worker.permission(source, ask: false)
-        return status == noErr ? .granted : status == -1743 ? .denied : .notDetermined
-    }
-    public func connect(_ source: MediaSource) async -> MediaSnapshot {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: source.bundleID) else {
-            return MediaSnapshot(state: .closed)
+    /// Starts the bridge if it is not running. Safe to call from every widget instance.
+    public func start() {
+        guard process == nil, available else { return }
+        guard let bridge = Bundle.main.privateFrameworksURL?.appendingPathComponent("libMediaRemoteBridge.dylib"),
+              FileManager.default.fileExists(atPath: bridge.path) else {
+            available = false
+            return
         }
-        do { _ = try await NSWorkspace.shared.openApplication(at: url, configuration: .init()) }
-        catch { return MediaSnapshot(state: .unavailable) }
-        return await snapshot(for: source, requestPermission: true)
+        // A write to a bridge that just died must fail, not kill the app.
+        signal(SIGPIPE, SIG_IGN)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
+        process.arguments = ["-MDynaLoader", "-e", Self.loader, bridge.path]
+        let stdin = Pipe(), stdout = Pipe()
+        process.standardInput = stdin
+        process.standardOutput = stdout
+        process.standardError = FileHandle.nullDevice
+        stdout.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            if data.isEmpty { handle.readabilityHandler = nil; return }
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.receive(data) } }
+        }
+        process.terminationHandler = { [weak self] ended in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.bridgeEnded(ended) } }
+        }
+        do {
+            try process.run()
+            self.process = process
+            input = stdin.fileHandleForWriting
+        } catch {
+            available = false
+        }
     }
 
-    public func snapshot(for source: MediaSource, requestPermission: Bool = false) async -> MediaSnapshot {
-        guard NSRunningApplication.runningApplications(withBundleIdentifier: source.bundleID).isEmpty == false else {
-            return MediaSnapshot(state: .closed)
-        }
-        return await worker.snapshot(source, requestPermission: requestPermission)
+    public func send(_ command: Command) {
+        guard let input else { return }
+        try? input.write(contentsOf: Data("\(command.rawValue)\n".utf8))
+        if command == .toggle { nowPlaying?.playing.toggle() }
     }
-    public func command(_ command: Command, source: MediaSource) async -> Bool {
-        guard !NSRunningApplication.runningApplications(withBundleIdentifier: source.bundleID).isEmpty else { return false }
-        return await worker.command(command, source: source)
-    }
-    public func open(_ source: MediaSource) -> Bool {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: source.bundleID) else { return false }
+
+    /// Brings the app that owns the session to the front.
+    public func openPlayer() {
+        guard let bundleID = nowPlaying?.bundleID,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return }
         NSWorkspace.shared.openApplication(at: url, configuration: .init(), completionHandler: nil)
-        return true
+    }
+
+    private func receive(_ data: Data) {
+        buffer.append(data)
+        while let newline = buffer.firstIndex(of: UInt8(ascii: "\n")) {
+            let line = buffer[buffer.startIndex..<newline]
+            buffer.removeSubrange(buffer.startIndex...newline)
+            if let message = try? JSONDecoder().decode(BridgeMessage.self, from: line) {
+                failures = 0
+                update(snapshot(from: message))
+            }
+        }
+    }
+
+    /// Players report nothing for a moment between tracks, so an empty session only
+    /// clears the widget if no new track arrives shortly after.
+    private func update(_ snapshot: MediaSnapshot?) {
+        pendingClear?.cancel()
+        pendingClear = nil
+        if let snapshot {
+            nowPlaying = snapshot
+            return
+        }
+        let clear = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.nowPlaying = nil } }
+        pendingClear = clear
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(3), execute: clear)
+    }
+
+    private func snapshot(from message: BridgeMessage) -> MediaSnapshot? {
+        guard let title = message.title, !title.isEmpty else { return nil }
+        let app = message.pid.flatMap { NSRunningApplication(processIdentifier: pid_t($0)) }
+        return MediaSnapshot(title: title, artist: message.artist ?? "", album: message.album ?? "",
+                             playing: message.playing ?? false, appName: app?.localizedName, bundleID: app?.bundleIdentifier)
+    }
+
+    private func bridgeEnded(_ ended: Process) {
+        guard ended === process else { return }
+        (ended.standardOutput as? Pipe)?.fileHandleForReading.readabilityHandler = nil
+        process = nil
+        input = nil
+        buffer.removeAll()
+        pendingClear?.cancel()
+        nowPlaying = nil
+        failures += 1
+        // Restart after a crash, but stop trying if the bridge cannot run on this system.
+        guard failures < 5 else { available = false; return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(failures * 2)) { [weak self] in
+            MainActor.assumeIsolated { self?.start() }
+        }
     }
 }
 
-/// Serializes automation away from the UI thread. No private MediaRemote APIs.
-private actor MediaWorker {
-    private var artworkCache: [String: Data] = [:]
-
-    func permission(_ source: MediaSource, ask: Bool) -> OSStatus {
-        let target = NSAppleEventDescriptor(bundleIdentifier: source.bundleID)
-        return AEDeterminePermissionToAutomateTarget(target.aeDesc, typeWildCard, typeWildCard, ask)
-    }
-
-    func snapshot(_ source: MediaSource, requestPermission: Bool) async -> MediaSnapshot {
-        let status = permission(source, ask: requestPermission)
-        guard status == noErr else {
-            return MediaSnapshot(state: status == -1744 ? .needsPermission : status == -1743 ? .denied : .unavailable)
-        }
-        // The interpolated target and commands are enums; calendar/media text is
-        // never executable script input. A stopped player has no current track.
-        let script = """
-        with timeout of 2 seconds
-            tell application id "\(source.bundleID)"
-                if player state is stopped then return {"", "", false, ""}
-                return {name of current track, artist of current track, player state is playing, album of current track}
-            end tell
-        end timeout
-        """
-        guard let result = execute(script), result.numberOfItems == 4 else { return MediaSnapshot(state: .unavailable) }
-        let title = result.atIndex(1)?.stringValue ?? ""
-        guard !title.isEmpty else { return MediaSnapshot(state: .idle) }
-        let artist = result.atIndex(2)?.stringValue ?? ""
-        let album = result.atIndex(4)?.stringValue ?? ""
-        let key = "\(source.rawValue)|\(artist)|\(album)|\(title)"
-        var snapshot = MediaSnapshot(state: .track, title: title, artist: artist, playing: result.atIndex(3)?.booleanValue ?? false)
-        if let cached = artworkCache[key] { snapshot.artwork = cached; return snapshot }
-        let artworkProperty = source == .music ? "raw data of artwork 1 of current track" : "artwork url of current track"
-        if let art = execute("""
-        with timeout of 2 seconds
-            tell application id "\(source.bundleID)"
-                try
-                    return \(artworkProperty)
-                on error
-                    return ""
-                end try
-            end tell
-        end timeout
-        """) {
-            if source == .music, art.descriptorType != typeUnicodeText, art.data.count <= 5_000_000 {
-                snapshot.artwork = art.data
-            } else if source == .spotify, let value = art.stringValue, let url = URL(string: value),
-                      url.scheme == "https", let host = url.host, host == "i.scdn.co" || host.hasSuffix(".scdn.co") {
-                if let (data, response) = try? await URLSession.shared.data(for: URLRequest(url: url, timeoutInterval: 5)),
-                   (response as? HTTPURLResponse)?.statusCode == 200, data.count <= 5_000_000 {
-                    snapshot.artwork = data
-                }
-            }
-        }
-        if let data = snapshot.artwork {
-            if artworkCache.count >= 8 { artworkCache.removeAll() }
-            artworkCache[key] = data
-        }
-        return snapshot
-    }
-
-    func command(_ command: MediaService.Command, source: MediaSource) -> Bool {
-        guard permission(source, ask: false) == noErr else { return false }
-        return execute("""
-        with timeout of 2 seconds
-            tell application id "\(source.bundleID)" to \(command.rawValue)
-        end timeout
-        """) != nil
-    }
-
-    private func execute(_ source: String) -> NSAppleEventDescriptor? {
-        autoreleasepool {
-            var error: NSDictionary?
-            let result = NSAppleScript(source: source)?.executeAndReturnError(&error)
-            return error == nil ? result : nil
-        }
-    }
+private struct BridgeMessage: Decodable {
+    var title: String?
+    var artist: String?
+    var album: String?
+    var playing: Bool?
+    var pid: Int?
 }

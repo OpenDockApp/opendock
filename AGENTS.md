@@ -26,6 +26,8 @@ Packages/
   OpenDockKit/            Public widget SDK: DockWidget, WidgetDescriptor, WidgetSize,
                           WidgetContext, WidgetRegistry, DockTheme, HostServices, components
   OpenDockWidgets/        First-party native widgets, registered in OpenDockWidgets.registerAll
+Helpers/MediaRemoteBridge/     ObjC dylib for Now Playing, built by the "Build Media Bridge"
+                               script phase into Contents/Frameworks (kept out of OpenDock/)
 Config/OpenDock.entitlements   Extra entitlements merged with build-setting entitlements
 docs/                     Product, architecture, roadmap
 ```
@@ -95,6 +97,12 @@ No xcodegen or tuist. Use a scratch `-derivedDataPath` when building from a shel
 - The sandbox cannot disable the system Dock. `SystemDockManager` moves it to a side
   edge and auto-hides it via System Events. Do not run it during testing without the
   user's say-so, since it changes their real Dock.
+- MediaRemote only answers Apple-signed processes (macOS 15.4+), so a normal binary gets
+  nil now-playing info. `MediaService` loads `libMediaRemoteBridge.dylib` into
+  `/usr/bin/perl`, which is entitled, and reads JSON lines from it. This works inside the
+  sandbox. Perl calls `OpenDockMediaBridgeRun` as an XSUB after loading; never run the
+  bridge from a load constructor, since dyld's loader lock makes MediaRemote stop replying. The bridge does not return artwork yet: the info dictionary has the artwork
+  metadata but no bytes.
 - Debug builds are `com.monawwar.OpenDock.Debug` with display name "OpenDock Debug".
   Their window owner name and sandbox container differ from release.
 - Screen capture is usually unavailable from an agent shell. To check the dock is on

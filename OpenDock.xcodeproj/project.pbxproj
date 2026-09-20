@@ -62,6 +62,7 @@
 				3C9C9B6C305D44ED00AD3283 /* Sources */,
 				3C9C9B6D305D44ED00AD3283 /* Frameworks */,
 				3C9C9B6E305D44ED00AD3283 /* Resources */,
+				0D000001000000000000D001 /* Build Media Bridge */,
 			);
 			buildRules = (
 			);
@@ -124,6 +125,29 @@
 			);
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0D000001000000000000D001 /* Build Media Bridge */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Helpers/MediaRemoteBridge/MediaRemoteBridge.m",
+			);
+			name = "Build Media Bridge";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(FRAMEWORKS_FOLDER_PATH)/libMediaRemoteBridge.dylib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nout=\"${SCRIPT_OUTPUT_FILE_0}\"\nmkdir -p \"$(dirname \"$out\")\"\narch_flags=\"\"\nfor arch in ${ARCHS}; do arch_flags=\"$arch_flags -arch $arch\"; done\nxcrun clang -dynamiclib -fobjc-arc -O2 $arch_flags -mmacosx-version-min=\"${MACOSX_DEPLOYMENT_TARGET}\" -install_name @rpath/libMediaRemoteBridge.dylib -framework Foundation \"${SCRIPT_INPUT_FILE_0}\" -o \"$out\"\nif [ \"${CONFIGURATION}\" = \"Release\" ]; then sign_flags=\"--options runtime --timestamp\"; else sign_flags=\"--timestamp=none\"; fi\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" $sign_flags \"$out\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		3C9C9B6C305D44ED00AD3283 /* Sources */ = {
@@ -274,7 +298,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "OpenDock Debug";
 				INFOPLIST_FILE = Config/OpenDock-Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock controls Music and Spotify playback and can move the system Dock aside.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock can move the system Dock aside.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "OpenDock uses your location for local weather forecasts.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OpenDock uses your location for local weather forecasts.";
@@ -316,7 +340,7 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
 				INFOPLIST_FILE = Config/OpenDock-Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock controls Music and Spotify playback and can move the system Dock aside.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "OpenDock can move the system Dock aside.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "OpenDock shows upcoming events in calendar widgets.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "OpenDock uses your location for local weather forecasts.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OpenDock uses your location for local weather forecasts.";
