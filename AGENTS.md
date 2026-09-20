@@ -102,9 +102,9 @@ No xcodegen or tuist. Use a scratch `-derivedDataPath` when building from a shel
   `/usr/bin/perl`, which is entitled, and reads JSON lines from it. This works inside the
   sandbox. Perl calls `OpenDockMediaBridgeRun` as an XSUB after loading; never run the
   bridge from a load constructor, since dyld's loader lock makes MediaRemote stop replying.
-  The app target sets `ENABLE_USER_SCRIPT_SANDBOXING = NO` because the phase that builds
-  the bridge runs `lipo` for a universal binary, and `lipo` writes a temp file next to its
-  output that the script sandbox denies. This does not affect the app's runtime sandbox. The bridge does not return artwork yet: the info dictionary has the artwork
+  The app target builds `ARCHS = arm64` only and sets `ENABLE_USER_SCRIPT_SANDBOXING = NO`,
+  since the script sandbox on CI's Xcode denied the bridge phase's temp writes. Neither
+  setting affects the app's runtime sandbox. The bridge does not return artwork yet: the info dictionary has the artwork
   metadata but no bytes.
 - Debug builds are `com.monawwar.OpenDock.Debug` with display name "OpenDock Debug".
   Their window owner name and sandbox container differ from release.
