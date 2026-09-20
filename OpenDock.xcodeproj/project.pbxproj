@@ -145,7 +145,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n# Build and sign in the script's scratch dir: lipo writes a temporary file next to\n# its output, and the script sandbox only allows that inside DERIVED_FILE_DIR.\nout=\"${SCRIPT_OUTPUT_FILE_0}\"\nwork=\"${DERIVED_FILE_DIR}/libMediaRemoteBridge.dylib\"\nmkdir -p \"${DERIVED_FILE_DIR}\" \"$(dirname \"$out\")\"\narch_flags=\"\"\nfor arch in ${ARCHS}; do arch_flags=\"$arch_flags -arch $arch\"; done\nxcrun clang -dynamiclib -fobjc-arc -O2 $arch_flags -mmacosx-version-min=\"${MACOSX_DEPLOYMENT_TARGET}\" -install_name @rpath/libMediaRemoteBridge.dylib -framework Foundation \"${SCRIPT_INPUT_FILE_0}\" -o \"$work\"\nif [ \"${CONFIGURATION}\" = \"Release\" ]; then sign_flags=\"--options runtime --timestamp\"; else sign_flags=\"--timestamp=none\"; fi\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" $sign_flags \"$work\"\ncp \"$work\" \"$out\"\n";
+			shellScript = "set -e\nout=\"${SCRIPT_OUTPUT_FILE_0}\"\nmkdir -p \"$(dirname \"$out\")\"\narch_flags=\"\"\nfor arch in ${ARCHS}; do arch_flags=\"$arch_flags -arch $arch\"; done\nxcrun clang -dynamiclib -fobjc-arc -O2 $arch_flags -mmacosx-version-min=\"${MACOSX_DEPLOYMENT_TARGET}\" -install_name @rpath/libMediaRemoteBridge.dylib -framework Foundation \"${SCRIPT_INPUT_FILE_0}\" -o \"$out\"\nif [ \"${CONFIGURATION}\" = \"Release\" ]; then sign_flags=\"--options runtime --timestamp\"; else sign_flags=\"--timestamp=none\"; fi\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" $sign_flags \"$out\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -288,6 +288,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 996Y4MJA7D;
 				ENABLE_APP_SANDBOX = YES;
+				/* lipo writes a temp file next to its output, which the script sandbox denies,
+				   so the Build Media Bridge phase runs unsandboxed. Runtime sandbox is unaffected. */
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 								GENERATE_INFOPLIST_FILE = YES;
@@ -331,6 +334,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 996Y4MJA7D;
 				ENABLE_APP_SANDBOX = YES;
+				/* lipo writes a temp file next to its output, which the script sandbox denies,
+				   so the Build Media Bridge phase runs unsandboxed. Runtime sandbox is unaffected. */
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 								GENERATE_INFOPLIST_FILE = YES;
