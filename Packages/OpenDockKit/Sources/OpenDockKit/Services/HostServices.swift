@@ -10,6 +10,7 @@ public struct HostServices {
     public var battery: BatteryService
     public var weather: WeatherService
     public var media: MediaService
+    public var shelf: ShelfService
 
     public init(
         openURL: @escaping (URL) -> Void,
@@ -18,7 +19,8 @@ public struct HostServices {
         meetings: MeetingService = .shared,
         battery: BatteryService = .shared,
         weather: WeatherService = .init(),
-        media: MediaService = .shared
+        media: MediaService = .shared,
+        shelf: ShelfService = .shared
     ) {
         self.openURL = openURL
         self.openApplication = openApplication
@@ -27,6 +29,7 @@ public struct HostServices {
         self.battery = battery
         self.weather = weather
         self.media = media
+        self.shelf = shelf
     }
 
     /// Default implementation backed by NSWorkspace and UserDefaults.

@@ -45,6 +45,7 @@ Goal: discover, install, and update community widgets from inside the app.
 - [x] Now Playing for any app (MediaRemote via a perl-hosted bridge) with transport controls
 - [x] Next Meeting with calendar access, countdown, and conference links
 - [x] Weather with saved city, current conditions, highs/lows, and unit selection (Open-Meteo)
+- [x] Shelf for parking files and links (security-scoped bookmarks, drag in and back out)
 - [ ] Reminders, Mail unread
 - [x] Battery with charge, power source, and time estimates
 - [ ] Memory, network throughput, disk

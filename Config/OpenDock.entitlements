@@ -9,6 +9,9 @@
 	<array>
 		<string>com.apple.systemevents</string>
 	</array>
+	<!-- Shelf widget: keep access to dropped files across launches. -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
 	<!-- Sparkle: download updates, and reach its installer XPC services from the sandbox. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
