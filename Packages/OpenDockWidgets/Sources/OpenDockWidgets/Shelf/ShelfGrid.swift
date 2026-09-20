@@ -52,18 +52,22 @@ struct ShelfGrid: View {
             count: 4
         )
         return ScrollView {
-            ZStack(alignment: .topLeading) {
-                // Behind the cells, so a drag that starts on a cell drags the file
-                // out and a drag that starts on empty space sweeps a selection.
+            LazyVGrid(columns: columns, spacing: theme.scaled(6)) {
+                ForEach(entries) { cell($0) }
+            }
+            // Fill the visible height so a sweep can start below the last row.
+            .frame(minHeight: gridHeight, alignment: .top)
+            // A background takes the grid's own size, where a layer inside a ZStack
+            // would be proposed nil height by the scroll view and collapse to a
+            // 10pt square. It sits behind the cells, so a drag starting on a cell
+            // drags that file out and a drag on empty space sweeps a selection.
+            .background(alignment: .topLeading) {
                 Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture { selection = [] }
                     .gesture(marqueeGesture)
-
-                LazyVGrid(columns: columns, spacing: theme.scaled(6)) {
-                    ForEach(entries) { cell($0) }
-                }
-
+            }
+            .overlay(alignment: .topLeading) {
                 if let marquee {
                     RoundedRectangle(cornerRadius: theme.scaled(3), style: .continuous)
                         .fill(theme.accent.opacity(0.15))
@@ -79,7 +83,11 @@ struct ShelfGrid: View {
             .coordinateSpace(.named(Self.space))
             .onPreferenceChange(ShelfCellFrames.self) { frames = $0 }
         }
-        .frame(height: theme.scaled(entries.count > 8 ? 240 : 160))
+        .frame(height: gridHeight)
+    }
+
+    private var gridHeight: CGFloat {
+        theme.scaled(entries.count > 8 ? 240 : 160)
     }
 
     private var marqueeGesture: some Gesture {
