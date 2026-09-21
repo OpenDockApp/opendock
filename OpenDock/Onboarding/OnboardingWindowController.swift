@@ -22,8 +22,7 @@ final class OnboardingWindowController {
 
     func show() {
         if let window {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate()
+            present(window)
             return
         }
 
@@ -41,12 +40,24 @@ final class OnboardingWindowController {
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
+        // The dock panel floats, so a normal-level window would open behind it.
+        window.level = .floating
         window.contentView = NSHostingView(rootView: root)
         window.center()
         self.window = window
+        present(window)
+    }
 
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+    /// An accessory app launched from Finder is not active yet during
+    /// `applicationDidFinishLaunching`, so a plain `activate()` there is ignored and the
+    /// window opens behind other apps. Order it front regardless, then activate once the
+    /// launch has settled.
+    private func present(_ window: NSWindow) {
+        window.orderFrontRegardless()
+        DispatchQueue.main.async {
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+        }
     }
 
     func close() {
